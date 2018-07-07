@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<block>
+  <name>PPDU Builder</name>
+  <key>wifi_ofdm_ppdu_builder</key>
+  <category>[wifi_ofdm]</category>
+  <import>import wifi_ofdm</import>
+  <make>wifi_ofdm.ppdu_builder($seed)</make>
+  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
+       Sub-nodes:
+       * name
+       * key (makes the value accessible as $keyname, e.g. in the make node)
+       * type -->
+  <param>
+    <name>Seed</name>
+    <key>seed</key>
+    <value>255</value>
+    <type>int</type>
+  </param>
+
+  <!-- Make one 'sink' node per input. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+  <sink>
+    <name>plcp_in</name>
+    <type>message</type>
+  </sink>
+
+  <!-- Make one 'source' node per output. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+  <source>
+    <name>ppdu_out</name>
+    <type>message</type>
+  </source>
+</block>
