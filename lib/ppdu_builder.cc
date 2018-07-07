@@ -103,7 +103,7 @@ namespace gr {
     		}
     		build_data(uvec + PLCP_HEADER_BYTES,io - PLCP_HEADER_BYTES);
             pmt::pmt_t blob = pmt::make_blob(d_copy,d_nout+PLCP_HEADER_BYTES);
-            message_port_pub(d_out_port,pmt::cons(pmt::intern("PPDU"),blob));
+            message_port_pub(d_out_port,pmt::cons(pmt::PMT_NIL,blob));
     	}
     private:
     	void build_data(const uint8_t* uvec, size_t nbyte){

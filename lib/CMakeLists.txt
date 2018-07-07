@@ -32,6 +32,7 @@ list(APPEND wifi_ofdm_sources
     header_prefixer.cc
     ppdu_builder.cc
     decode_header.cc
+    symbol_mapper_bvc_impl.cc
 )
 
 set(wifi_ofdm_sources "${wifi_ofdm_sources}" PARENT_SCOPE)

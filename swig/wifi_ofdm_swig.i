@@ -13,6 +13,7 @@
 #include "wifi_ofdm/header_prefixer.h"
 #include "wifi_ofdm/ppdu_builder.h"
 #include "wifi_ofdm/decode_header.h"
+#include "wifi_ofdm/symbol_mapper_bvc.h"
 %}
 
 
@@ -26,3 +27,5 @@ GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, header_prefixer);
 GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, ppdu_builder);
 %include "wifi_ofdm/decode_header.h"
 GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, decode_header);
+%include "wifi_ofdm/symbol_mapper_bvc.h"
+GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, symbol_mapper_bvc);

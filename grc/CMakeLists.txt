@@ -23,5 +23,6 @@ install(FILES
     wifi_ofdm_packet_builder.xml
     wifi_ofdm_header_prefixer.xml
     wifi_ofdm_ppdu_builder.xml
-    wifi_ofdm_decode_header.xml DESTINATION share/gnuradio/grc/blocks
+    wifi_ofdm_decode_header.xml
+    wifi_ofdm_symbol_mapper_bvc.xml DESTINATION share/gnuradio/grc/blocks
 )
