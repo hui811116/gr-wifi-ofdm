@@ -28,5 +28,6 @@ install(FILES
     header_prefixer.h
     ppdu_builder.h
     decode_header.h
-    symbol_mapper_bvc.h DESTINATION include/wifi_ofdm
+    symbol_mapper_bvc.h
+    cp_preamble_prefixer_vcc.h DESTINATION include/wifi_ofdm
 )
