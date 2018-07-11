@@ -15,6 +15,8 @@
 #include "wifi_ofdm/decode_header.h"
 #include "wifi_ofdm/symbol_mapper_bvc.h"
 #include "wifi_ofdm/cp_preamble_prefixer_vcc.h"
+#include "wifi_ofdm/coarse_cfo_fixer_cc.h"
+#include "wifi_ofdm/symbol_sync_cvc.h"
 %}
 
 
@@ -32,3 +34,7 @@ GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, decode_header);
 GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, symbol_mapper_bvc);
 %include "wifi_ofdm/cp_preamble_prefixer_vcc.h"
 GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, cp_preamble_prefixer_vcc);
+%include "wifi_ofdm/coarse_cfo_fixer_cc.h"
+GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, coarse_cfo_fixer_cc);
+%include "wifi_ofdm/symbol_sync_cvc.h"
+GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, symbol_sync_cvc);

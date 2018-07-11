@@ -67,6 +67,7 @@ gr_complex(0.078125,0.000000)
     {
      private:
       const pmt::pmt_t d_tagname;
+      const pmt::pmt_t d_bname;
 
      protected:
       int calculate_output_stream_length(const gr_vector_int &ninput_items);

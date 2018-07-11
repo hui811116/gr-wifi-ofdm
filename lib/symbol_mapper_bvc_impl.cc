@@ -28,9 +28,11 @@
 
 namespace gr {
   namespace wifi_ofdm {
-
+    #define d_debug 0
+    #define dout d_debug && std::cout
     static const int d_nsub=52;
     static const int d_nfft=64;
+    static const float d_fft_norm = 1.0f/(float)64;
 
     symbol_mapper_bvc::sptr
     symbol_mapper_bvc::make(int rate,const std::string& tagname)
@@ -51,42 +53,42 @@ namespace gr {
     {
       switch(rate){
         case 0:
-          d_norm =1.0;
+          d_norm =1.0 * d_fft_norm;
           d_mod_ptr = d_bpsk;
           d_bits_per_point = 1;
         break;
         case 1:
-          d_norm =1.0;
+          d_norm =1.0 * d_fft_norm;
           d_mod_ptr = d_bpsk;
           d_bits_per_point = 1;
         break;
         case 2:
-          d_norm =1.0/sqrt(2);
+          d_norm =1.0/sqrt(2) * d_fft_norm;
           d_mod_ptr = d_qpsk;
           d_bits_per_point = 2;
         break;
         case 3:
-          d_norm =1.0/sqrt(2);
+          d_norm =1.0/sqrt(2) * d_fft_norm;
           d_mod_ptr = d_qpsk;
           d_bits_per_point = 2;
         break;
         case 4:
-          d_norm =1.0/sqrt(10);
+          d_norm =1.0/sqrt(10) * d_fft_norm;
           d_mod_ptr = d_qam16;
           d_bits_per_point = 4;
         break;
         case 5:
-          d_norm =1.0/sqrt(10);
+          d_norm =1.0/sqrt(10) * d_fft_norm;
           d_mod_ptr = d_qam16;
           d_bits_per_point = 4;
         break;
         case 6:
-          d_norm =1.0/sqrt(84);
+          d_norm =1.0/sqrt(42) * d_fft_norm;
           d_mod_ptr = d_qam64;
           d_bits_per_point = 6;
         break;
         case 7:
-          d_norm = 1.0/sqrt(84);
+          d_norm = 1.0/sqrt(42) * d_fft_norm;
           d_mod_ptr = d_qam64;
           d_bits_per_point = 6;
         break;
@@ -157,11 +159,11 @@ namespace gr {
       // step 1: modulate HEADER bits
       while( nout < d_nfft){
         if(d_subcarrier_type[nout]==1){
-          out[ d_subcarrier_idx[nout] ] = d_bpsk[ (in[bin/8]>>(bin%8)) & 0x01 ];
+          out[ d_subcarrier_idx[nout] ] = d_fft_norm * d_bpsk[ (in[bin/8]>>(bin%8)) & 0x01 ];
           bin++; // consume one bit
         }else if(d_subcarrier_type[nout]==-1){
           // insert one pilot before these subcarrier indices
-          out[ d_subcarrier_idx[nout] ] = d_pilot_sign[d_psign_cnt] * d_pilot[d_psym_cnt++];
+          out[ d_subcarrier_idx[nout] ] = d_fft_norm * d_pilot_sign[d_psign_cnt] * d_pilot[d_psym_cnt++];
           // add counter for next pilot symbol
         }else{
           out[ d_subcarrier_idx[nout] ] = gr_complex(0,0);
@@ -178,15 +180,15 @@ namespace gr {
             d_breg |= ( ( (in[bin/8] >> (bin%8)) & 0x01) << biter );
             bin++;
           }
-          out[nout/d_nfft + d_subcarrier_idx[nout%d_nfft]] = d_norm * d_mod_ptr[d_breg];
+          out[nout/d_nfft*d_nfft + d_subcarrier_idx[nout%d_nfft]] = d_norm * d_mod_ptr[d_breg];
         }else if(d_subcarrier_type[nout%d_nfft]==-1){
-          out[ nout/d_nfft + d_subcarrier_idx[nout%d_nfft]] = d_pilot_sign[d_psign_cnt % 127] * d_pilot[d_psym_cnt++];
+          out[ nout/d_nfft*d_nfft + d_subcarrier_idx[nout%d_nfft]] = d_fft_norm * d_pilot_sign[d_psign_cnt % 127] * d_pilot[d_psym_cnt++];
           if(d_psym_cnt==4){
             d_psym_cnt = 0;
             d_psign_cnt = (d_psign_cnt==127)? 0 : d_psign_cnt+1;
           }
         }else{
-          out[nout/d_nfft + d_subcarrier_idx[nout%d_nfft]] = gr_complex(0,0);
+          out[nout/d_nfft*d_nfft + d_subcarrier_idx[nout%d_nfft]] = gr_complex(0,0);
         }
         nout++;
       }

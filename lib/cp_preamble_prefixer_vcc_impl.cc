@@ -27,6 +27,8 @@
 
 namespace gr {
   namespace wifi_ofdm {
+    #define d_debug 0
+    #define dout d_debug && std::cout
     static const int d_nfft = 64;
     static const int d_ncp = 16;
     static const int d_pulse_append = 16;
@@ -45,7 +47,8 @@ namespace gr {
       : gr::tagged_stream_block("cp_preamble_prefixer_vcc",
               gr::io_signature::make(1, 1, sizeof(gr_complex)*d_nfft),
               gr::io_signature::make(1, 1, sizeof(gr_complex)), tagname),
-              d_tagname(pmt::intern(tagname))
+              d_tagname(pmt::intern(tagname)),
+              d_bname(pmt::intern(alias()))
     {
       set_tag_propagation_policy(TPP_DONT);
     }
@@ -62,7 +65,6 @@ namespace gr {
     {
       // should be number of ofdm symbols
       int noutput_items = ninput_items[0] * SAMPLES_PER_SYMBOL + PREAMBLE_SAMPLES + d_pulse_append; 
-
       // additional sample for smoothing...
       return noutput_items ;
     }
@@ -75,23 +77,31 @@ namespace gr {
     {
       const gr_complex *in = (const gr_complex *) input_items[0];
       gr_complex *out = (gr_complex *) output_items[0];
+      if(noutput_items<PREAMBLE_SAMPLES+ninput_items[0]*(d_nfft+d_ncp)){
+        return 0;
+      }
       // copy preamble to first position
       memcpy(out,d_preamble,sizeof(gr_complex)*PREAMBLE_SAMPLES);
-      noutput_items = PREAMBLE_SAMPLES;
+      add_item_tag(0,nitems_written(0),pmt::intern("Preamble"),pmt::from_long(PREAMBLE_SAMPLES-1),d_bname);
+      int nout = PREAMBLE_SAMPLES-1; // offset 1 sample for smoothing
+      int nsynCnt=0; // counting the ofdm symbols
       gr_complex smooth_scalar(0.5,0);
       for(int i=0;i<ninput_items[0];++i){
-        out[noutput_items] += smooth_scalar*in[i*d_nfft+d_nfft-d_ncp];
-        memcpy(&out[noutput_items+1],&in[i*d_nfft+d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
-        memcpy(&out[noutput_items+d_ncp],&in[i*d_nfft],sizeof(gr_complex)*(d_nfft-1));
-        out[noutput_items+d_nfft] = smooth_scalar * in[i*d_nfft+d_nfft-d_ncp];
-        noutput_items+= SAMPLES_PER_SYMBOL;
+        add_item_tag(0,nitems_written(0)+nout,pmt::intern("CP"),pmt::from_long(d_ncp),d_bname);
+        add_item_tag(0,nitems_written(0)+nout+d_ncp,pmt::intern("Ofdm_idx"),pmt::from_long(nsynCnt++),d_bname);
+        out[nout] += smooth_scalar*in[i*d_nfft+d_nfft-d_ncp];
+        memcpy(&out[nout+1],&in[i*d_nfft+d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
+        memcpy(&out[nout+d_ncp],&in[i*d_nfft],sizeof(gr_complex)*d_nfft);
+        out[nout+d_nfft+d_ncp] = smooth_scalar * in[i*d_nfft+d_nfft-d_ncp];
+        nout+= SAMPLES_PER_SYMBOL;
       }
+      add_item_tag(0,nitems_written(0)+nout,pmt::intern("Manual_append"),pmt::from_long(d_pulse_append),d_bname);
       // manual appends additional samples for pushing out remainder samples in pulse shaping function?
-      out[noutput_items] += smooth_scalar * in[(ninput_items[0])*d_nfft-d_ncp];
-      memcpy(&out[noutput_items+1],&in[(ninput_items[0])*d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
-      noutput_items += d_pulse_append;
+      out[nout] += smooth_scalar * in[(ninput_items[0])*d_nfft-d_ncp];
+      memcpy(&out[nout+1],&in[(ninput_items[0])*d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
+      nout += d_pulse_append;
       // Tell runtime system how many output items we produced.
-      return noutput_items;
+      return nout;
     }
 
   } /* namespace wifi_ofdm */
