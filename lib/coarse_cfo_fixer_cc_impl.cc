@@ -129,7 +129,7 @@ namespace gr {
         }else if(tmp_auto>d_threshold && tmp_auto<=1.0f){
           dout<<"DEBUG-CoarseCfo: auto val--nom="<<std::abs(nom)<<",inpwr="<<std::abs(inpwr)<<" ,delpwr="<<std::abs(delpwr)<<std::endl;
           d_nCnt = d_escape;
-          d_coarse_cfo = arg(nom)/(float)d_delay;
+          d_coarse_cfo = std::arg(nom)/(float)d_delay;
           add_item_tag(0,nitems_written(0)+ngen,pmt::intern("cfo_est"),pmt::from_float(d_coarse_cfo),d_bname);
           dout<<"DEBUG-CoarseCfo:auto_calc="<<tmp_auto<<" ,cfo_est="<<d_coarse_cfo<<" ,added at:"<<nitems_written(0)+ngen<<std::endl;
         }

@@ -28,7 +28,12 @@
 
 namespace gr {
   namespace wifi_ofdm {
+    #define d_debug 0
+    #define dout d_debug && std::cout
     static const int d_nfft = 64;
+    static const int d_nsps = 80;
+    static const int d_ncp = 16;
+    static const float d_thres = 0.9;
     symbol_sync_cvc::sptr
     symbol_sync_cvc::make()
     {
@@ -45,11 +50,12 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(gr_complex)*d_nfft)),
               d_bname(pmt::intern(alias()))
     {
-      d_state = 0;
+      d_state =0;
       d_symbol_cnt =0;
-      d_conj_long = (gr_complex*) volk_malloc(sizeof(gr_complex)*64,volk_get_alignment());
-      volk_32fc_conjugate_32fc(d_conj_long,d_long_pre,64);
-      volk_32fc_x2_conjugate_dot_prod_32fc(&d_long_eng,d_conj_long,d_conj_long,64);
+      d_conj_long = (gr_complex*) volk_malloc(sizeof(gr_complex)*d_nfft,volk_get_alignment());
+      volk_32fc_conjugate_32fc(d_conj_long,d_long_pre,d_nfft);
+      volk_32fc_x2_conjugate_dot_prod_32fc(&d_long_eng,d_conj_long,d_conj_long,d_nfft);
+      set_tag_propagation_policy(TPP_DONT);
     }
 
     /*
@@ -64,7 +70,7 @@ namespace gr {
     symbol_sync_cvc_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
       /* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
-      ninput_items_required[0] = noutput_items;
+      ninput_items_required[0] = noutput_items * d_nfft + 2 * d_nfft;
     }
 
     int
@@ -77,71 +83,75 @@ namespace gr {
       gr_complex *out = (gr_complex *) output_items[0];
       gr_complex eng_fir,eng_sec;
       gr_complex tmp_auto;
-      int nout=0, nin, ncon=0;
-      float first_cross, second_cross, fine_cfo;
+      int nout=0, ncon=0, nin;
+      float first_cross, second_cross, data_cross, fine_cfo;
+      
+      if(ninput_items[0]<d_nfft*2 || noutput_items==0){
+        consume_each(0);
+        return 0;
+      }
+
       if(d_state==0){
-        if(ninput_items[0]<128 || noutput_items<64){
-          consume_each(0);
-          return 0;
-        }
-        nin = ninput_items[0]-128;
-        while(ncon<nin){
-          volk_32fc_x2_dot_prod_32fc(&d_first_long,&in[ncon],d_conj_long,64);
-          volk_32fc_x2_dot_prod_32fc(&d_second_long,&in[ncon+64],d_conj_long,64);
-          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],64);
-          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+64],&in[ncon+64],64);
-          first_cross = abs(d_first_long)/(abs(eng_fir*d_long_eng)+1e-7);
-          second_cross = abs(d_second_long)/(abs(eng_sec*d_long_eng)+1e-7);
-          if( first_cross > 0.9 && second_cross > 0.9){
-            // sync of long preamble
-            // fine-tune the first one for it contains no smoothed symbols
-            // only use the first 32 samples
-            volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon], &in[ncon+64], 32);
-            fine_cfo = arg(tmp_auto)/(float)64;
+        // searching for long preamble
+        nin = ninput_items[0] - d_nsps;
+        while(ncon<nin &&  (nout < noutput_items * d_nfft) ){
+          volk_32fc_x2_dot_prod_32fc(&d_first_long,&in[ncon],d_conj_long,d_nfft);
+          volk_32fc_x2_dot_prod_32fc(&d_second_long,&in[ncon+d_nfft],d_conj_long,d_nfft);
+          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],d_nfft);
+          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+d_nfft],&in[ncon+d_nfft],d_nfft);
+          first_cross = std::abs(d_first_long)/(std::sqrt(std::abs(eng_fir*d_long_eng))+1e-7);
+          second_cross = std::abs(d_second_long)/(std::sqrt(std::abs(eng_sec*d_long_eng))+1e-7);
+          if( first_cross > d_thres && second_cross > d_thres){
+          // sync of long preamble
+          // fine-tune the first one for it contains no smoothed symbols
+          // only use the first 32 samples
+            volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon], &in[ncon+d_nfft], d_nfft/2);
+            fine_cfo = std::arg(tmp_auto)/(float)d_nfft;
             // change state
             d_state =1;
+            d_symbol_cnt =0;
             add_item_tag(0,nitems_written(0),pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
             add_item_tag(0,nitems_written(0),pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
-            memcpy(out,&in[ncon],sizeof(gr_complex)*64);
-            nout += 64;
-            ncon += 128;
+            memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
+            nout += d_nfft;
+            ncon += d_nfft*2;
+            dout <<"DEBUG--symbol_sync: first cross="<<first_cross<<" second_cross="<<second_cross
+            <<" ncon="<<ncon<<" cfo_est="<<fine_cfo<<std::endl;
             break;
+          }else{
+            ncon++;
           }
-          ncon++;
         }
       }else{
-        if(ninput_items[0]<80 || noutput_items<64){
-          consume_each(0);
-          return 0;
-        }
-        nin = ninput_items[0]/80 * 80;
-        while(nout < noutput_items/64*64 && ncon<nin){
-          volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon], &in[ncon+64], 16);
-          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],16);
-          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+64],&in[ncon+64],16);
-          first_cross = abs(tmp_auto)/(abs(eng_fir*eng_sec)+1e-7);
-          if(first_cross>0.9){
+        // synced to ofdm symbols
+        nin = ninput_items[0] - 2 * d_nfft;
+        while(ncon<nin && (nout < noutput_items * d_nfft) ){
+          volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon], &in[ncon+d_nfft], d_ncp);
+          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],d_ncp);
+          volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+d_nfft],&in[ncon+d_nfft],d_ncp);
+          data_cross = std::abs(tmp_auto)/(std::sqrt(std::abs(eng_fir*eng_sec))+1e-7);
+          dout<<"DEBUG--symbol_sync: state 1: data_cross="<<data_cross<<std::endl;
+          if(data_cross > d_thres){
             // still sync
-            fine_cfo = arg(tmp_auto)/(float)64;
-            add_item_tag(0,nitems_written(0)+nout,pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
-            add_item_tag(0,nitems_written(0)+nout,pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
-            memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*64);
-            ncon += 80;
-            nout += 64;
+            fine_cfo = std::arg(tmp_auto)/(float)d_nfft;
+            add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
+            add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
+            memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
+            nout += d_nfft;
+            ncon += d_nsps;
+            dout<<"DEBUG--symbol_sync: first_cross="<<first_cross<<" ,fine_cfo="<<fine_cfo
+              <<" ,symbol_idx="<<d_symbol_cnt<<std::endl;
           }else{
-            // lose sync --> reset all --> change state
+            // non sync anymore
+            ncon++;
             d_symbol_cnt =0;
             d_state = 0;
             break;
           }
         }
       }
-      // Tell runtime system how many input items we consumed on
-      // each input stream.
       consume_each (ncon);
-
-      // Tell runtime system how many output items we produced.
-      return nout;
+      return nout/d_nfft;
     }
 
   } /* namespace wifi_ofdm */
