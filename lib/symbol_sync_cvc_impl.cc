@@ -28,7 +28,7 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 0
+    #define d_debug 1
     #define dout d_debug && std::cout
     static const int d_nfft = 64;
     static const int d_nsps = 80;
@@ -116,7 +116,7 @@ namespace gr {
             nout += d_nfft;
             ncon += d_nfft*2;
             dout <<"DEBUG--symbol_sync: first cross="<<first_cross<<" second_cross="<<second_cross
-            <<" ncon="<<ncon<<" cfo_est="<<fine_cfo<<std::endl;
+            <<" nitems="<<nitems_read(0)+ncon<<" fine_est="<<fine_cfo<<std::endl;
             break;
           }else{
             ncon++;
@@ -130,7 +130,6 @@ namespace gr {
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],d_ncp);
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+d_nfft],&in[ncon+d_nfft],d_ncp);
           data_cross = std::abs(tmp_auto)/(std::sqrt(std::abs(eng_fir*eng_sec))+1e-7);
-          dout<<"DEBUG--symbol_sync: state 1: data_cross="<<data_cross<<std::endl;
           if(data_cross > d_thres){
             // still sync
             fine_cfo = std::arg(tmp_auto)/(float)d_nfft;
@@ -139,7 +138,7 @@ namespace gr {
             memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
             nout += d_nfft;
             ncon += d_nsps;
-            dout<<"DEBUG--symbol_sync: first_cross="<<first_cross<<" ,fine_cfo="<<fine_cfo
+            dout<<"DEBUG--symbol_sync: first_cross="<<first_cross<<", nitems="<<nitems_read(0)+ncon<<" ,fine_cfo="<<fine_cfo
               <<" ,symbol_idx="<<d_symbol_cnt<<std::endl;
           }else{
             // non sync anymore

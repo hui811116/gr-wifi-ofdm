@@ -82,23 +82,19 @@ namespace gr {
       }
       // copy preamble to first position
       memcpy(out,d_preamble,sizeof(gr_complex)*PREAMBLE_SAMPLES);
-      //add_item_tag(0,nitems_written(0),pmt::intern("Preamble"),pmt::from_long(PREAMBLE_SAMPLES-1),d_bname);
       int nout = PREAMBLE_SAMPLES-1; // offset 1 sample for smoothing
       int nsynCnt=0; // counting the ofdm symbols
       gr_complex smooth_scalar(0.5,0);
       for(int i=0;i<ninput_items[0];++i){
-        //add_item_tag(0,nitems_written(0)+nout,pmt::intern("CP"),pmt::from_long(d_ncp),d_bname);
-        //add_item_tag(0,nitems_written(0)+nout+d_ncp,pmt::intern("Ofdm_idx"),pmt::from_long(nsynCnt++),d_bname);
-        out[nout] += smooth_scalar*in[i*d_nfft+d_nfft-d_ncp];
-        memcpy(&out[nout+1],&in[i*d_nfft+d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
+        out[nout] += smooth_scalar* in[i*d_nfft+d_nfft-d_ncp];
+        memcpy(&out[nout+1],&in[(i*d_nfft+d_nfft-d_ncp+1)],sizeof(gr_complex)*(d_ncp-1));
         memcpy(&out[nout+d_ncp],&in[i*d_nfft],sizeof(gr_complex)*d_nfft);
         out[nout+d_nfft+d_ncp] = smooth_scalar * in[i*d_nfft+d_nfft-d_ncp];
         nout+= SAMPLES_PER_SYMBOL;
       }
-      //add_item_tag(0,nitems_written(0)+nout,pmt::intern("Manual_append"),pmt::from_long(d_pulse_append),d_bname);
       // manual appends additional samples for pushing out remainder samples in pulse shaping function?
-      out[nout] += smooth_scalar * in[(ninput_items[0])*d_nfft-d_ncp];
-      memcpy(&out[nout+1],&in[(ninput_items[0])*d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
+      out[nout] += smooth_scalar * in[ninput_items[0]*d_nfft-d_ncp];
+      memcpy(&out[nout+1], &in[(ninput_items[0])*d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
       nout += d_pulse_append;
       // Tell runtime system how many output items we produced.
       return nout;
