@@ -106,8 +106,6 @@ namespace gr {
         consume_each(0);
         return 0;
       }
-      dout<<"DEBUG-CoarseCfo:noutput_items="<<noutput_items<<" ,nint0="<<ninput_items[0]<<" ,nint1="<<ninput_items[1]
-      <<" ,history="<<history()<<" ,nout="<<nout<<" ,nin="<<nin<<std::endl;
       volk_32fc_x2_multiply_32fc(d_inXdelay,delay,in,nin);
       volk_32fc_x2_multiply_conjugate_32fc(d_inSqu,in,in,nin);
       volk_32fc_x2_multiply_conjugate_32fc(d_delaySqu,delay,delay,nin);
