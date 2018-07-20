@@ -46,7 +46,7 @@ namespace gr {
        * class. wifi_ofdm::symbol_parser_vc::make is the public interface for
        * creating new instances.
        */
-      static sptr make(int nfft);
+      static sptr make();
     };
 
   } // namespace wifi_ofdm

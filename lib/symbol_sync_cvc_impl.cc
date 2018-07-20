@@ -25,6 +25,7 @@
 #include <gnuradio/io_signature.h>
 #include "symbol_sync_cvc_impl.h"
 #include <volk/volk.h>
+#include <gnuradio/expj.h>
 
 namespace gr {
   namespace wifi_ofdm {
@@ -34,6 +35,7 @@ namespace gr {
     static const int d_nsps = 80;
     static const int d_ncp = 16;
     static const float d_thres = 0.9;
+    static gr_complex d_dumPhase = gr_complex(1,0);
     symbol_sync_cvc::sptr
     symbol_sync_cvc::make()
     {
@@ -110,9 +112,11 @@ namespace gr {
             // change state
             d_state =1;
             d_symbol_cnt =0;
+            add_item_tag(0,nitems_written(0),pmt::intern("long_pre"),pmt::PMT_T,d_bname);
             add_item_tag(0,nitems_written(0),pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
-            add_item_tag(0,nitems_written(0),pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
-            memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
+            //add_item_tag(0,nitems_written(0),pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
+            //memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
+            volk_32fc_s32fc_x2_rotator_32fc(out,&in[ncon],gr_expj(fine_cfo),&d_dumPhase,d_nfft);
             nout += d_nfft;
             ncon += d_nfft*2;
             dout <<"DEBUG--symbol_sync: first cross="<<first_cross<<" second_cross="<<second_cross
@@ -135,8 +139,9 @@ namespace gr {
             // still sync
             fine_cfo = std::arg(tmp_auto)/(float)d_nfft;
             add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
-            add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
-            memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
+            //add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
+            //memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
+            volk_32fc_s32fc_x2_rotator_32fc(&out[nout],&in[ncon+16],gr_expj(fine_cfo),&d_dumPhase,d_nfft);
             nout += d_nfft;
             ncon += d_nsps;
             dout<<"DEBUG--symbol_sync: first_cross="<<first_cross<<" ,fine_cfo="<<fine_cfo

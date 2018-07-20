@@ -4,19 +4,20 @@
   <key>wifi_ofdm_symbol_parser_vc</key>
   <category>[wifi_ofdm]</category>
   <import>import wifi_ofdm</import>
-  <make>wifi_ofdm.symbol_parser_vc($nfft)</make>
+  <make>wifi_ofdm.symbol_parser_vc()</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
        * key (makes the value accessible as $keyname, e.g. in the make node)
        * type -->
+  <!--
   <param>
     <name>FFT size</name>
     <key>nfft</key>
     <value>64</value>
     <type>int</type>
   </param>
-
+  -->
   <!-- Make one 'sink' node per input. Sub-nodes:
        * name (an identifier for the GUI)
        * type
@@ -25,7 +26,7 @@
   <sink>
     <name>in</name>
     <type>complex</type>
-    <vlen>$nfft</vlen>
+    <vlen>64</vlen>
   </sink>
 
   <!-- Make one 'source' node per output. Sub-nodes:
@@ -33,10 +34,10 @@
        * type
        * vlen
        * optional (set to 1 for optional inputs) -->
-  <!--
+  
   <source>
     <name>out</name>
-    <type></type>
+    <type>complex</type>
   </source>
-  -->
+  
 </block>

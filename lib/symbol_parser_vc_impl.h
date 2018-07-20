@@ -30,11 +30,16 @@ namespace gr {
     {
      private:
       // Nothing to declare in this block.
-      int d_nfft;
+      gr_complex * d_channel_est;
+      gr_complex * d_buf;
+      int d_pilot_idx;
 
      public:
-      symbol_parser_vc_impl(int nfft);
+      symbol_parser_vc_impl();
       ~symbol_parser_vc_impl();
+
+      void symbol_eq(gr_complex* out, const gr_complex* in, int pilot_idx);
+      void channel_estimation(const gr_complex* in);
 
       // Where all the action really happens
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
