@@ -25,11 +25,12 @@
 #include <gnuradio/io_signature.h>
 #include "symbol_parser_vc_impl.h"
 #include <volk/volk.h>
+#include <gnuradio/expj.h>
 
 namespace gr {
   namespace wifi_ofdm {
     static const int d_nfft = 64;
-    static const int d_ndata = 52;
+    static const int d_ndata = 48;
     static const pmt::pmt_t d_preTag = pmt::intern("long_pre");
     symbol_parser_vc::sptr
     symbol_parser_vc::make()
@@ -44,11 +45,13 @@ namespace gr {
     symbol_parser_vc_impl::symbol_parser_vc_impl()
       : gr::block("symbol_parser_vc",
               gr::io_signature::make(1, 1, sizeof(gr_complex) * d_nfft),
-              gr::io_signature::make(1, 1, sizeof(gr_complex)))
+              gr::io_signature::make(1, 1, sizeof(gr_complex) * d_ndata)),
+              d_bname(pmt::intern(alias()))
     {
       d_channel_est = (gr_complex *) volk_malloc(sizeof(gr_complex)*d_nfft,volk_get_alignment());
       d_buf = (gr_complex *) volk_malloc(sizeof(gr_complex)*d_nfft,volk_get_alignment());
       d_pilot_idx = 0;
+      set_tag_propagation_policy(TPP_DONT);
     }
 
     /*
@@ -64,20 +67,43 @@ namespace gr {
     symbol_parser_vc_impl::symbol_eq(gr_complex* out,const gr_complex* in, int pilot_idx)
     {
       // maybe consider MMSE
-
+      for(int i=0;i<d_nfft;i++){
+        d_buf[d_desubcarr_idx[i]] = in[i] * d_channel_est[i];
+      }
+      // estimate carrier phase
+      // pilot subcarriers index: 11, 25, 39, 53
+      gr_complex scalar=d_buf[11]*d_pilot[0];
+      scalar+= d_buf[25]*d_pilot[1];
+      scalar+= d_buf[39]*d_pilot[2];
+      scalar+= d_buf[53]*d_pilot[3];
+      float carrier_phase = (d_pilot_sign[pilot_idx]==1)? std::arg(scalar) : -std::arg(scalar);
+      // FIXME:estimate attennuation
+      for(int i=0;i<d_ndata;++i){
+        out[i] = gr_expj(-carrier_phase) * d_buf[d_datacarr_idx[i]];
+      }
     }    
 
     void
     symbol_parser_vc_impl::channel_estimation(const gr_complex* in)
     {
-
+      gr_complex noise_pwr_est = gr_complex(1e-8,0);
+      // there are 12 null subcarriers
+      for(int i=0;i<d_nfft;++i){
+        if(d_subcarrier_type [d_desubcarr_idx[i]] == 0){
+          noise_pwr_est += std::norm(in[i]);
+        }else{
+          // including pilots and data subcarriers
+          d_channel_est[i] = d_long[d_desubcarr_idx[i]]/in[i];
+        }
+      }
+      noise_pwr_est/=gr_complex(12.0,0);
     }
 
     void
     symbol_parser_vc_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
       /* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
-      ninput_items_required[0] = noutput_items/d_nfft;
+      ninput_items_required[0] = noutput_items * d_ndata / d_nfft;
     }
 
     int
@@ -88,8 +114,13 @@ namespace gr {
     {
       const gr_complex *in = (const gr_complex *) input_items[0];
       gr_complex * out = (gr_complex*) output_items[0];
-      int nin = std::min(ninput_items[0],noutput_items/d_nfft);
+      int nin = std::min(ninput_items[0],noutput_items);
       int nout = 0;
+      if(nin==0){
+        consume_each(0);
+        return 0;
+      }
+      
       std::vector<tag_t> tags;
       get_tags_in_range(tags,0,nitems_read(0),nitems_read(0)+nin,d_preTag);
       if(!tags.empty()){
@@ -107,9 +138,16 @@ namespace gr {
         // 1. Feq
         // 2. pilot 
         // channel gain & carrier phase
-        symbol_eq(&out[nout],&in[i],d_pilot_idx);
+        //symbol_eq(&out[nout],&in[i*d_nfft],d_pilot_idx);
+        for(int j=0;j<d_ndata;++j)
+          out[d_ndata*i+j] = in[i*d_nfft+d_datacarr_idx[j]];
+        // for debugging
+        if(d_pilot_idx==0){
+          add_item_tag(0,nitems_written(0),pmt::intern("hdr"),pmt::PMT_T,d_bname);
+        }
+        add_item_tag(0,nitems_written(0)+nout/d_ndata,pmt::intern("symbol_idx"),pmt::from_long(d_pilot_idx),d_bname);
         d_pilot_idx++;
-        d_pilot_idx %= 4;
+        d_pilot_idx %= 127;
         nout+= d_ndata;
       }
       // Tell runtime system how many input items we consumed on
@@ -117,7 +155,7 @@ namespace gr {
       consume_each (nin);
 
       // Tell runtime system how many output items we produced.
-      return nout;
+      return nout/d_ndata;
     }
 
   } /* namespace wifi_ofdm */

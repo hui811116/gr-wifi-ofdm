@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <block>
-  <name>Symbol Parser</name>
-  <key>wifi_ofdm_symbol_parser_vc</key>
+  <name>Block Decoder</name>
+  <key>wifi_ofdm_block_decoder_vc</key>
   <category>[wifi_ofdm]</category>
   <import>import wifi_ofdm</import>
-  <make>wifi_ofdm.symbol_parser_vc()</make>
+  <make>wifi_ofdm.block_decoder_vc()</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
@@ -12,10 +12,9 @@
        * type -->
   <!--
   <param>
-    <name>FFT size</name>
-    <key>nfft</key>
-    <value>64</value>
-    <type>int</type>
+    <name>...</name>
+    <key>...</key>
+    <type>...</type>
   </param>
   -->
   <!-- Make one 'sink' node per input. Sub-nodes:
@@ -26,7 +25,7 @@
   <sink>
     <name>in</name>
     <type>complex</type>
-    <vlen>64</vlen>
+    <vlen>48</vlen>
   </sink>
 
   <!-- Make one 'source' node per output. Sub-nodes:
@@ -34,11 +33,10 @@
        * type
        * vlen
        * optional (set to 1 for optional inputs) -->
-  
+  <!--
   <source>
     <name>out</name>
-    <type>complex</type>
-    <vlen>48</vlen>
+    <type></type>
   </source>
-  
+  -->
 </block>

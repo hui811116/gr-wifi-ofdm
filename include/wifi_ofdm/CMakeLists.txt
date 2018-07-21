@@ -31,5 +31,6 @@ install(FILES
     symbol_mapper_bvc.h
     cp_preamble_prefixer_vcc.h
     coarse_cfo_fixer_cc.h
-    symbol_sync_cvc.h DESTINATION include/wifi_ofdm
+    symbol_sync_cvc.h
+    block_decoder_vc.h DESTINATION include/wifi_ofdm
 )

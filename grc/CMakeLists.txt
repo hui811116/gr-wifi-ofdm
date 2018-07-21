@@ -27,5 +27,6 @@ install(FILES
     wifi_ofdm_symbol_mapper_bvc.xml
     wifi_ofdm_cp_preamble_prefixer_vcc.xml
     wifi_ofdm_coarse_cfo_fixer_cc.xml
-    wifi_ofdm_symbol_sync_cvc.xml DESTINATION share/gnuradio/grc/blocks
+    wifi_ofdm_symbol_sync_cvc.xml
+    wifi_ofdm_block_decoder_vc.xml DESTINATION share/gnuradio/grc/blocks
 )

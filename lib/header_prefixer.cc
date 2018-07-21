@@ -107,13 +107,17 @@ namespace gr {
     			parity ^= ((bsum >> i) & 0x01);
     		}
     		d_hdr_buf[2] |= (parity<<1);//parity check moved to 18th bit
-            dout<<"DEBUG-header_prefixer: uncoded header..."<<(int)d_hdr_buf[0]<<", "<<(int)d_hdr_buf[1]<<", "<<(int)d_hdr_buf[2]<<std::endl;
+            dout<<"DEBUG-header_prefixer: uncoded header..."<<std::endl;
+            for(int i=0;i<24;++i)
+                dout<<" "<<(int) ((d_hdr_buf[i/8] >> (i%8))&0x01);
+            dout<<std::endl;
+            //dout<<(int)d_hdr_buf[0]<<", "<<(int)d_hdr_buf[1]<<", "<<(int)d_hdr_buf[2]<<std::endl;
     		// the rest 6 bits should be zeros
     		// performing 133,171 conv coding
     		conv_enc(d_hdr_buf); // store in d_enc
-            dout<<"DEBUG-header_prefixer: coded bytes...";
-            for(int i=0;i<6;++i)
-                dout<<(int)d_enc[i]<<" ,";
+            dout<<"DEBUG-header_prefixer: coded bits..."<<std::endl;
+            for(int i=0;i<48;++i)
+                dout<<" "<<(int) ((d_enc[i/8] >> (i%8))&0x01);
             dout<<std::endl;
     		// do interleaving
     		interleaver();

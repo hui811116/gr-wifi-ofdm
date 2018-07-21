@@ -29,7 +29,7 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 1
+    #define d_debug 0
     #define dout d_debug && std::cout
     static const int d_nfft = 64;
     static const int d_nsps = 80;
@@ -107,16 +107,16 @@ namespace gr {
           // sync of long preamble
           // fine-tune the first one for it contains no smoothed symbols
           // only use the first 32 samples
-            volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon], &in[ncon+d_nfft], d_nfft/2);
+            volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon+d_nfft], &in[ncon], d_nfft/2);
             fine_cfo = std::arg(tmp_auto)/(float)d_nfft;
             // change state
             d_state =1;
             d_symbol_cnt =0;
             add_item_tag(0,nitems_written(0),pmt::intern("long_pre"),pmt::PMT_T,d_bname);
             add_item_tag(0,nitems_written(0),pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
-            //add_item_tag(0,nitems_written(0),pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
-            //memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
-            volk_32fc_s32fc_x2_rotator_32fc(out,&in[ncon],gr_expj(fine_cfo),&d_dumPhase,d_nfft);
+            // FIXME: find a more stable way to fine tune CFO
+            memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
+            //volk_32fc_s32fc_x2_rotator_32fc(out,&in[ncon],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
             nout += d_nfft;
             ncon += d_nfft*2;
             dout <<"DEBUG--symbol_sync: first cross="<<first_cross<<" second_cross="<<second_cross
@@ -130,7 +130,7 @@ namespace gr {
         // synced to ofdm symbols
         nin = ninput_items[0] - 2 * d_nfft;
         while(ncon<nin && (nout < noutput_items * d_nfft) ){
-          volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon], &in[ncon+d_nfft], d_ncp);
+          volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon+d_nfft], &in[ncon], d_ncp);
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],d_ncp);
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+d_nfft],&in[ncon+d_nfft],d_ncp);
           data_cross = std::abs(tmp_auto)/(std::sqrt(std::abs(eng_fir*eng_sec))+1e-7);
@@ -138,9 +138,9 @@ namespace gr {
             // still sync
             fine_cfo = std::arg(tmp_auto)/(float)d_nfft;
             add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
-            //add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("cfo_est"),pmt::from_float(fine_cfo),d_bname);
-            //memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
-            volk_32fc_s32fc_x2_rotator_32fc(&out[nout],&in[ncon+16],gr_expj(fine_cfo),&d_dumPhase,d_nfft);
+            // FIXME: find a more stable way to fine tune CFO
+            memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
+            //volk_32fc_s32fc_x2_rotator_32fc(&out[nout],&in[ncon+16],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
             nout += d_nfft;
             ncon += d_nsps;
             dout<<"DEBUG--symbol_sync: first_cross="<<first_cross<<", nitems="<<nitems_read(0)+ncon<<" ,fine_cfo="<<fine_cfo
