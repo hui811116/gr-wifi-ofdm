@@ -22,6 +22,8 @@
 #define INCLUDED_WIFI_OFDM_BLOCK_DECODER_VC_IMPL_H
 
 #include <wifi_ofdm/block_decoder_vc.h>
+#include <random>
+#include <chrono>
 
 namespace gr {
   namespace wifi_ofdm {
@@ -44,11 +46,13 @@ namespace gr {
     class block_decoder_vc_impl : public block_decoder_vc
     {
      private:
-      pmt::pmt_t d_out_port;
+      const pmt::pmt_t d_out_port;
+      pmt::pmt_t d_rate_key;
       uint8_t d_rate;
       uint16_t d_length;
 
       const unsigned int* d_deint_ptr;
+      const unsigned char* d_depun_ptr;
       int d_ncbps;
 
       int d_sym_cnt;
@@ -58,7 +62,8 @@ namespace gr {
 
       uint32_t d_hdr_reg;
       uint8_t d_coded_buf[8192];
-      uint8_t d_deint_buf[36];
+      uint8_t d_depun_buf[8192];
+      uint8_t d_deint_buf[72];
       uint8_t d_hdr_debytes[6];
       void (block_decoder_vc_impl::*d_data_demod)(uint8_t* out, const gr_complex* in, int nin);
       void demod_BPSK(uint8_t* out, const gr_complex* in, int nin);
@@ -66,12 +71,13 @@ namespace gr {
       void demod_QAM16(uint8_t* out, const gr_complex* in, int nin);
       void demod_QAM64(uint8_t* out, const gr_complex* in, int nin);
       bool decode_hdr(const gr_complex* in);
-      void deint_and_pub();
+      void deint_depunc_and_pub();
       unsigned int d_hdr_cost[24][64];
       unsigned char d_hdr_track[24][64];
 
-      //unsigned int d_cost[1024][64]; // truncated every 1024 bits
-      //unsigned int d_track[1024][64];
+      std::mt19937 gen;
+      std::bernoulli_distribution dist;
+
      public:
       block_decoder_vc_impl();
       ~block_decoder_vc_impl();

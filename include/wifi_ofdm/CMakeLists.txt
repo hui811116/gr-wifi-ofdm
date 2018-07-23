@@ -32,5 +32,6 @@ install(FILES
     cp_preamble_prefixer_vcc.h
     coarse_cfo_fixer_cc.h
     symbol_sync_cvc.h
-    block_decoder_vc.h DESTINATION include/wifi_ofdm
+    block_decoder_vc.h
+    ppdu_sink.h DESTINATION include/wifi_ofdm
 )
