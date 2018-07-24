@@ -30,6 +30,8 @@
 
 namespace gr {
   namespace wifi_ofdm {
+    #define d_debug 0
+    #define dout d_debug && std::cout
   	static const unsigned char d_output_table[64][2]={
         {0,3},{2,1},{3,0},{1,2},{3,0},{1,2},{0,3},{2,1},{0,3},{2,1},
         {3,0},{1,2},{3,0},{1,2},{0,3},{2,1},{1,2},{3,0},{2,1},{0,3},
@@ -65,13 +67,19 @@ namespace gr {
     		// conv_dec
     		if(conv_dec(uvec,io)){
     			// finish decoding
-    			
+          /*
+    			dout<<"decoded output:"<<std::endl;
+          for(int i=0;i<io/2-1;++i)
+            dout<<" "<<(int)d_decode[i];
+          dout<<std::endl;
+          */
     			// check service field and seed
     			service_and_seed();
+          //dout<<"estimated seed="<<(int)d_seed_est<<std::endl;
     			// next step, descramble decoded bits
     			descramble(io*4-2-6);
     			// publish payload
-    			pmt::pmt_t blob = pmt::make_blob(d_decode, io/2-1);
+    			pmt::pmt_t blob = pmt::make_blob(d_decode+2, io/2-3);
     			message_port_pub(d_out_port,pmt::cons(pmt::PMT_NIL,blob));
     		}else{
     			// decoding failure
@@ -88,8 +96,10 @@ namespace gr {
     			buf |= (((tmpbit ^ (d_decode[i/8]>>(i%8) ) ) & 0x01) << (i%8));
     			// update state
     			d_state = ( (d_state << 1) | tmpbit) & 0x7F;
-    			if( (i+1) % 8 == 0)
+    			if( ((i+1) % 8) == 0){
     				d_decode[i/8] = buf;
+            buf = 0x00;
+          }
     		}
     	}
     	void service_and_seed()
@@ -107,7 +117,7 @@ namespace gr {
     	}
     	bool conv_dec(const uint8_t* uvec, size_t noutputs)
     	{
-    		int nbit = noutputs *4 - 2; // last byte has only 6 zeros
+    		const int nbit = noutputs *4 - 2; // last byte has only 6 zeros
     		int nwrite = 0; // data bits that are decoded
     		int ncnt = 0;
     		std::memset(d_decode,0,noutputs/2);
@@ -115,13 +125,14 @@ namespace gr {
     			d_cost[0][i] = UINT_MAX;
     			d_track[0][i] = 0;
     		}
+        //dout<<"nbit = "<<nbit<<std::endl;
     		unsigned char cur=0x00, nex0=0x00,nex1=0x01;
     		const uint8_t out_mask = 0x03;
     		unsigned char output = uvec[0] & out_mask;
-      		unsigned char tmpCmp0 = output ^ d_output_table[cur][0];
-      		unsigned char tmpCmp1 = output ^ d_output_table[cur][1];
-      		uint32_t costCnt0 = 0, costCnt1 =0;
-      		while(ncnt<nbit){
+      	unsigned char tmpCmp0 = output ^ d_output_table[cur][0];
+      	unsigned char tmpCmp1 = output ^ d_output_table[cur][1];
+      	uint32_t costCnt0 = 0, costCnt1 =0;
+      	while(ncnt<nbit){
       			if(ncnt%1024 ==0){
       				// initialization and update
       				output = (uvec[ncnt*2/8] >> (2*ncnt % 8)) & out_mask;
@@ -141,9 +152,13 @@ namespace gr {
       				}
       			}
       			output = (uvec[ncnt*2/8] >> (2*ncnt % 8)) & out_mask;
+            //dout<<"iteration="<<ncnt<<std::endl;
+            //dout<<"costs:";
       			for(nex0=0;nex0<64;++nex0){
-      				if( (ncnt> nbit-6) && (nex0 && 0x01) )
+      				if( (ncnt> nbit-6) && (nex0 & 0x01) ){
+                d_cost[ncnt][nex0] = UINT_MAX;
       					continue;
+              }
       				cur = (nex0 >> 1);
       				tmpCmp0 = output ^ d_output_table[cur][nex0 & 0x01];
       				costCnt0 = (d_cost[ncnt%1024-1][cur] == UINT_MAX)? UINT_MAX : d_cost[ncnt%1024-1][cur] + (uint32_t)((tmpCmp0 & 0x01) + ((tmpCmp0>>1) & 0x01));             
@@ -152,8 +167,10 @@ namespace gr {
           			tmpCmp1 = output ^ d_output_table[nex1][nex0 & 0x01];
           			costCnt1 = (d_cost[ncnt%1024-1][nex1] == UINT_MAX)? UINT_MAX : d_cost[ncnt%1024-1][nex1] + (uint32_t)((tmpCmp1 & 0x01) + ((tmpCmp1>>1) & 0x01));
           			d_cost[ncnt][nex0] = (costCnt0<costCnt1)? costCnt0 : costCnt1;
-          			d_track[ncnt][nex0] = (costCnt0<costCnt1)? cur : nex1;	
+          			d_track[ncnt][nex0] = (costCnt0<costCnt1)? cur : nex1;
+                //dout<<" "<<d_cost[ncnt][nex0];
       			}
+            //dout<<std::endl;
       			ncnt++;
       			if(ncnt%1024 == 0){
       				// truncated 
@@ -168,7 +185,7 @@ namespace gr {
       				if(minCost == UINT_MAX)
       					return false;
       				// back tracking
-      				cur = d_track[1023][minIdx];
+      				cur = minIdx;
       				for(int i=1;i<1024;++i){
       					nex0 = d_track[1024-i][cur];
       					d_decode[(nwrite+1024-i)/8] |= ((cur&0x01) <<(nwrite+1024-i)%8);
@@ -179,18 +196,18 @@ namespace gr {
       				cur = minIdx;
       				nwrite += 1024;
       			} // if
-      		}// while
-      		// last tracking
-      		cur = d_track[ncnt%1024][0];
-      		for(int i=1;i<ncnt%1024;++i){
-      			nex0 = d_track[ncnt%1024-i][cur];
-      			d_decode[(ncnt-i)/8] |= ((cur&0x01) << (ncnt-i)%8);
-      			cur = nex0;
-      		}
-      		// last one
-      		d_decode[nwrite/8] |= ((cur & 0x01) << (nwrite%8));
-      		nwrite += ncnt%1024;
-      		return true;
+      	}// while
+      	// last tracking
+      	cur = 0;
+      	for(int i=1;i< (ncnt%1024) ;++i){
+      		nex0 = d_track[ncnt%1024-i][cur];
+      		d_decode[(ncnt-i)/8] |= ((cur&0x01) << (ncnt-i)%8);
+      		cur = nex0;
+      	}
+      	// last one
+      	d_decode[nwrite/8] |= ((cur & 0x01) << (nwrite%8));
+      	nwrite += ncnt%1024;
+      	return true;
     	}
     	
     	const pmt::pmt_t d_in_port;

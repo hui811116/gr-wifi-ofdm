@@ -121,7 +121,7 @@ namespace gr {
     		d_nbits = databits+npad;
     		scrambler();
     		// null 6 bits (TAIL)
-    		d_scramble[WIFI_SERVICE_BYTES+nbyte] &= 0xC0; // null the scrambled six bits
+    		d_scramble[WIFI_SERVICE_BYTES+nbyte] = 0x00; // null the scrambled six bits
     		// conv_coding
     		// (register code)
     		conv_enc();
@@ -135,21 +135,15 @@ namespace gr {
     		// initial seed
     		std::memset(d_scramble,0,d_nout);
     		d_scramble_reg = d_seed;
-            dout<<"Debug-ppdu_builder: in scrambler, nbits="<<d_nbits<<", seed="<<(int)d_scramble_reg<<std::endl;
     		unsigned char tmp; 
     		for(int i=0;i<d_nbits;++i){
     			tmp = ((d_scramble_reg>>3) ^ (d_scramble_reg>>6)) & 0x01;
     			d_scramble[i/8] |= ( ( tmp ^ ((d_code[i/8]>>(i%8)) & 0x01) ) << (i%8) );
     			d_scramble_reg = (d_scramble_reg<<1) | tmp;
     		}
-            // DEBUGGING
-            dout<<"DEBUG-ppdu_builder: print scrambled bytes:"<<std::endl;
-            for(int i=0;i<d_nbits/8;++i)
-                dout<<" "<<(int)d_scramble[i];
-            dout<<std::endl;
     	}
     	void conv_enc(){
-    		std::memset(d_code,0,(int)ceil(d_nbits/8));
+    		std::memset(d_code,0,(int)ceil(d_nbits/4.0));
     		unsigned char enc_reg=0x00, tmp_bit=0x00;
     		unsigned char outbit[2];
     		for(int i=0;i<d_nbits;++i){
@@ -160,10 +154,6 @@ namespace gr {
                 d_code[i/4] |= (outbit[1]<< ( (2*i+1)%8 )); 
     			enc_reg = ((enc_reg<<1) | tmp_bit) & 0x3f;
     		}
-            dout<<"DEBUG-ppdu_builder: printing conv_coded data bytes"<<std::endl;
-            for(int i=0;i<d_nbits/4;++i)
-                dout<<" "<<(int)d_code[i];
-            dout<<std::endl;
     	}
     	void puncturing(){
             // reuse d_scramble_reg
