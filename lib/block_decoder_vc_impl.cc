@@ -152,19 +152,23 @@ namespace gr {
       for(int i=0;i<48;++i){
         tmp_reg2[i/8] |= (((std::real(in[i])>0)? 0x01: 0x00)<<(i%8));
       }
+      /*
       dout<<"rx interleaved bits"<<std::endl;
       for(int i=0;i<48;++i)
         dout<<" "<<(int)( (tmp_reg2[i/8]>>(i%8)) & 0x01);
       dout<<std::endl;
+      */
       for(int i=0;i<48;++i){
         int idx = d_deint[i];
         uint8_t tmpbit = (tmp_reg2[idx/8] >> (idx%8)) & 0x01;
         d_hdr_debytes[i/8] |= (tmpbit << (i%8));
       }
+      /*
       dout<<"rx coded bits="<<std::endl;
       for(int i=0;i<48;++i)
         dout<<" "<<(int)((d_hdr_debytes[i/8]>>(i%8)) & 0x01);
       dout<<std::endl;
+      */
       for(int i=0;i<24;++i){
         for(int j=0;j<64;++j)
           d_hdr_cost[i][j] = UINT_MAX;
@@ -217,10 +221,12 @@ namespace gr {
       }
       // last bit
       d_hdr_reg[0] |= (cur & 0x01);
+      /*
       dout<<"decoded hdr bits:"<<std::endl;
       for(int i=0;i<24;++i)
         dout<<" "<<(int)((d_hdr_reg[i/8]>>(i%8)) &0x01);
       dout<<std::endl;
+      */
       uint8_t parity = 0x00;
       for(int i=0;i<18;++i){
         parity ^= ((d_hdr_reg[i/8]>>(i%8)) & 0x01);

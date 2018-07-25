@@ -26,6 +26,7 @@
 #include "symbol_sync_cvc_impl.h"
 #include <volk/volk.h>
 #include <gnuradio/expj.h>
+#include <gnuradio/math.h>
 
 namespace gr {
   namespace wifi_ofdm {
@@ -115,12 +116,11 @@ namespace gr {
             add_item_tag(0,nitems_written(0),pmt::intern("long_pre"),pmt::PMT_T,d_bname);
             add_item_tag(0,nitems_written(0),pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
             // FIXME: find a more stable way to fine tune CFO
-            memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
-            //volk_32fc_s32fc_x2_rotator_32fc(out,&in[ncon],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
+            volk_32fc_s32fc_x2_rotator_32fc(out,&in[ncon],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
             nout += d_nfft;
             ncon += d_nfft*2;
             dout <<"DEBUG--symbol_sync: first cross="<<first_cross<<" second_cross="<<second_cross
-            <<" nitems="<<nitems_read(0)+ncon<<" fine_est="<<fine_cfo<<std::endl;
+            <<" fine_est="<<fine_cfo<<std::endl;
             //break;
             consume_each(ncon);
             return nout/d_nfft;
@@ -139,14 +139,15 @@ namespace gr {
           if(data_cross > d_thres){
             // still sync
             fine_cfo = std::arg(tmp_auto)/(float)d_nfft;
+            dout<<"DEBUG--symbol_sync: data_cross="<<data_cross<<" ,fine_cfo="<<fine_cfo
+              <<" ,symbol_idx="<<d_symbol_cnt<<std::endl;
             add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
             // FIXME: find a more stable way to fine tune CFO
-            memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
-            //volk_32fc_s32fc_x2_rotator_32fc(&out[nout],&in[ncon+16],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
+            volk_32fc_s32fc_x2_rotator_32fc(&out[nout],&in[ncon+16],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
+
             nout += d_nfft;
             ncon += d_nsps;
-            dout<<"DEBUG--symbol_sync: first_cross="<<first_cross<<", nitems="<<nitems_read(0)+ncon<<" ,fine_cfo="<<fine_cfo
-              <<" ,symbol_idx="<<d_symbol_cnt<<std::endl;
+            
           }else{
             // non sync anymore
             d_symbol_cnt =0;
