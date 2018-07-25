@@ -147,22 +147,24 @@ namespace gr {
     block_decoder_vc_impl::decode_hdr(const gr_complex* in)
     {
       std::memset(d_hdr_debytes,0,6);
-      d_hdr_reg = 0x00000000;
+      std::memset(d_hdr_reg,0,3);
       uint8_t tmp_reg2[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
       for(int i=0;i<48;++i){
         tmp_reg2[i/8] |= (((std::real(in[i])>0)? 0x01: 0x00)<<(i%8));
       }
+      dout<<"rx interleaved bits"<<std::endl;
+      for(int i=0;i<48;++i)
+        dout<<" "<<(int)( (tmp_reg2[i/8]>>(i%8)) & 0x01);
+      dout<<std::endl;
       for(int i=0;i<48;++i){
         int idx = d_deint[i];
         uint8_t tmpbit = (tmp_reg2[idx/8] >> (idx%8)) & 0x01;
         d_hdr_debytes[i/8] |= (tmpbit << (i%8));
       }
-        
-      dout<<"rx:coded bits:"<<std::endl;
+      dout<<"rx coded bits="<<std::endl;
       for(int i=0;i<48;++i)
-        dout<<" "<<(int) ( (d_hdr_debytes[i/8]>>(i%8)) & 0x01);
+        dout<<" "<<(int)((d_hdr_debytes[i/8]>>(i%8)) & 0x01);
       dout<<std::endl;
-
       for(int i=0;i<24;++i){
         for(int j=0;j<64;++j)
           d_hdr_cost[i][j] = UINT_MAX;
@@ -206,22 +208,28 @@ namespace gr {
         dout<<" ,min_Cost=UINT_MAX, abort"<<std::endl;
         return false;
       }
-      cur = d_hdr_track[23][0];
-      nex0 = 0;
-      d_hdr_reg |= ( ((nex0 ^ (cur<<1) )&0x01) << 23);
+      cur = 0;
       // step 2: backward tracking
       for(int i=1;i<24;i++){
-        nex0 = cur; // tmp_holder
-        cur = d_hdr_track[23-i][nex0];
-        d_hdr_reg |= ( ((nex0 ^ (cur<<1) )&0x01) << (23-i) );
+        nex0 = d_hdr_track[24-i][cur]; // tmp_holder
+        d_hdr_reg[(24-i)/8] |= ( (cur&0x01) << ((24-i)%8) );
+        cur = nex0;
       }
+      // last bit
+      d_hdr_reg[0] |= (cur & 0x01);
+      dout<<"decoded hdr bits:"<<std::endl;
+      for(int i=0;i<24;++i)
+        dout<<" "<<(int)((d_hdr_reg[i/8]>>(i%8)) &0x01);
+      dout<<std::endl;
       uint8_t parity = 0x00;
       for(int i=0;i<18;++i){
-        parity ^= ((d_hdr_reg>>i) & 0x0001);
+        parity ^= ((d_hdr_reg[i/8]>>(i%8)) & 0x01);
       }
       if(parity == 0x00){
-        d_rate = d_hdr_reg & 0x0f;
-        d_length = (d_hdr_reg >> 5) & 0x0fff;
+        d_rate = d_hdr_reg[0] & 0x0f;
+        d_length = (d_hdr_reg[0] >> 5) & 0x07;
+        d_length |= (d_hdr_reg[1] << 3);
+        d_length |= (d_hdr_reg[2] & 0x01) << (11);
         d_ndbits = 16 + d_length * 8 + 6;
         switch(d_rate){
           case d_rateSet[0]:
@@ -366,13 +374,15 @@ namespace gr {
         }
       }
       for(int i=0;i<nout;++i){
-        (*this.*d_data_demod)(d_coded_buf,&in[d_ndata*i],d_ndbits-d_dbits_cnt);
-        if(d_ndbits>0 && d_ndbits <= d_dbits_cnt){
-          // all data bits collected
-          // deinterleave
-          deint_depunc_and_pub();
-          // reset
-          d_ndbits =0;
+        if(d_ndbits>0){
+          (*this.*d_data_demod)(d_coded_buf,&in[d_ndata*i],d_ndbits-d_dbits_cnt);
+          if(d_ndbits <= d_dbits_cnt){
+            // all data bits collected
+            // deinterleave
+            deint_depunc_and_pub();
+            // reset
+            d_ndbits =0;  
+          }
         }
       }
       // Tell runtime system how many output items we produced.

@@ -1,22 +1,21 @@
 <?xml version="1.0"?>
 <block>
-  <name>Block Decoder</name>
-  <key>wifi_ofdm_block_decoder_vc</key>
+  <name>debug_collector_vcvc</name>
+  <key>wifi_ofdm_debug_collector_vcvc</key>
   <category>[wifi_ofdm]</category>
   <import>import wifi_ofdm</import>
-  <make>wifi_ofdm.block_decoder_vc()</make>
+  <make>wifi_ofdm.debug_collector_vcvc($tag)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
        * key (makes the value accessible as $keyname, e.g. in the make node)
        * type -->
-  <!--
   <param>
-    <name>...</name>
-    <key>...</key>
-    <type>...</type>
+    <name>Tagname</name>
+    <key>tag</key>
+    <type>string</type>
   </param>
-  -->
+
   <!-- Make one 'sink' node per input. Sub-nodes:
        * name (an identifier for the GUI)
        * type
@@ -25,7 +24,7 @@
   <sink>
     <name>in</name>
     <type>complex</type>
-    <vlen>48</vlen>
+    <vlen>64</vlen>
   </sink>
 
   <!-- Make one 'source' node per output. Sub-nodes:
@@ -33,10 +32,9 @@
        * type
        * vlen
        * optional (set to 1 for optional inputs) -->
-  
   <source>
-    <name>ppdu_out</name>
-    <type>message</type>
+    <name>out</name>
+    <type>complex</type>
+    <vlen>48</vlen>
   </source>
-  
 </block>

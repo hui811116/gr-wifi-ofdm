@@ -29,5 +29,6 @@ install(FILES
     wifi_ofdm_coarse_cfo_fixer_cc.xml
     wifi_ofdm_symbol_sync_cvc.xml
     wifi_ofdm_block_decoder_vc.xml
-    wifi_ofdm_ppdu_sink.xml DESTINATION share/gnuradio/grc/blocks
+    wifi_ofdm_ppdu_sink.xml
+    wifi_ofdm_debug_collector_vcvc.xml DESTINATION share/gnuradio/grc/blocks
 )

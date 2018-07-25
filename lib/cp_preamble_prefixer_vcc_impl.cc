@@ -77,9 +77,7 @@ namespace gr {
     {
       const gr_complex *in = (const gr_complex *) input_items[0];
       gr_complex *out = (gr_complex *) output_items[0];
-      if(noutput_items<PREAMBLE_SAMPLES+ninput_items[0]*(d_nfft+d_ncp)){
-        return 0;
-      }
+      
       // copy preamble to first position
       memcpy(out,d_preamble,sizeof(gr_complex)*PREAMBLE_SAMPLES);
       int nout = PREAMBLE_SAMPLES-1; // offset 1 sample for smoothing

@@ -33,5 +33,6 @@ install(FILES
     coarse_cfo_fixer_cc.h
     symbol_sync_cvc.h
     block_decoder_vc.h
-    ppdu_sink.h DESTINATION include/wifi_ofdm
+    ppdu_sink.h
+    debug_collector_vcvc.h DESTINATION include/wifi_ofdm
 )

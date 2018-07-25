@@ -111,7 +111,6 @@ namespace gr {
             for(int i=0;i<24;++i)
                 dout<<" "<<(int) ((d_hdr_buf[i/8] >> (i%8))&0x01);
             dout<<std::endl;
-            //dout<<(int)d_hdr_buf[0]<<", "<<(int)d_hdr_buf[1]<<", "<<(int)d_hdr_buf[2]<<std::endl;
     		// the rest 6 bits should be zeros
     		// performing 133,171 conv coding
     		conv_enc(d_hdr_buf); // store in d_enc
@@ -121,6 +120,10 @@ namespace gr {
             dout<<std::endl;
     		// do interleaving
     		interleaver();
+            dout<<"DEBUG-header_prefixer: interleaved bits"<<std::endl;
+            for(int i=0;i<48;++i)
+                dout<<" "<<(int) ((d_copy[i/8]>>(i%8))&0x01);
+            dout<<std::endl;
             // d_out contains the produced header, 6 bytes
             std::memcpy(d_copy+WIFI80211A_HEADER_BYTES, uvec, sizeof(char) * io);
             pmt::pmt_t blob = pmt::make_blob(d_copy,io+WIFI80211A_HEADER_BYTES);

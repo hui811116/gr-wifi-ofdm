@@ -116,6 +116,7 @@ namespace gr {
       gr_complex * out = (gr_complex*) output_items[0];
       int nin = std::min(ninput_items[0],noutput_items);
       int nout = 0;
+      int ncon = 0;
       if(nin==0){
         consume_each(0);
         return 0;
@@ -129,22 +130,20 @@ namespace gr {
           // found a long preamble
           channel_estimation(&in[0]);
           d_pilot_idx = 0;
+          add_item_tag(0,nitems_written(0),pmt::intern("hdr"),pmt::PMT_T,d_bname);
+          ncon++;
         }else{
           // 
           nin = (int)(tags[0].offset - nitems_read(0));
         }
       }
-      for(int i=0;i<nin;++i){
+      for(;ncon<nin;++ncon){
         // 1. Feq
         // 2. pilot 
         // channel gain & carrier phase
         //symbol_eq(&out[nout],&in[i*d_nfft],d_pilot_idx);
         for(int j=0;j<d_ndata;++j)
-          out[d_ndata*i+j] = in[i*d_nfft+d_datacarr_idx[j]];
-        // for debugging
-        if(d_pilot_idx==0){
-          add_item_tag(0,nitems_written(0),pmt::intern("hdr"),pmt::PMT_T,d_bname);
-        }
+          out[d_ndata*ncon+j] = in[ncon*d_nfft+d_datacarr_idx[j]];
         add_item_tag(0,nitems_written(0)+nout/d_ndata,pmt::intern("symbol_idx"),pmt::from_long(d_pilot_idx),d_bname);
         d_pilot_idx++;
         d_pilot_idx %= 127;
@@ -152,7 +151,7 @@ namespace gr {
       }
       // Tell runtime system how many input items we consumed on
       // each input stream.
-      consume_each (nin);
+      consume_each (ncon);
 
       // Tell runtime system how many output items we produced.
       return nout/d_ndata;

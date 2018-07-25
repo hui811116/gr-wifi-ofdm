@@ -19,6 +19,7 @@
 #include "wifi_ofdm/symbol_sync_cvc.h"
 #include "wifi_ofdm/block_decoder_vc.h"
 #include "wifi_ofdm/ppdu_sink.h"
+#include "wifi_ofdm/debug_collector_vcvc.h"
 %}
 
 
@@ -44,3 +45,5 @@ GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, symbol_sync_cvc);
 GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, block_decoder_vc);
 %include "wifi_ofdm/ppdu_sink.h"
 GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, ppdu_sink);
+%include "wifi_ofdm/debug_collector_vcvc.h"
+GR_SWIG_BLOCK_MAGIC2(wifi_ofdm, debug_collector_vcvc);

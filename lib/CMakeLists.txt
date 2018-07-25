@@ -38,6 +38,7 @@ list(APPEND wifi_ofdm_sources
     symbol_sync_cvc_impl.cc
     block_decoder_vc_impl.cc
     ppdu_sink.cc
+    debug_collector_vcvc_impl.cc
 )
 
 set(wifi_ofdm_sources "${wifi_ofdm_sources}" PARENT_SCOPE)

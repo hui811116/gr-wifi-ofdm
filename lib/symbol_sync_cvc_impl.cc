@@ -121,7 +121,9 @@ namespace gr {
             ncon += d_nfft*2;
             dout <<"DEBUG--symbol_sync: first cross="<<first_cross<<" second_cross="<<second_cross
             <<" nitems="<<nitems_read(0)+ncon<<" fine_est="<<fine_cfo<<std::endl;
-            break;
+            //break;
+            consume_each(ncon);
+            return nout/d_nfft;
           }else{
             ncon++;
           }
@@ -147,10 +149,10 @@ namespace gr {
               <<" ,symbol_idx="<<d_symbol_cnt<<std::endl;
           }else{
             // non sync anymore
-            ncon++;
             d_symbol_cnt =0;
             d_state = 0;
-            break;
+            consume_each(ncon+1);
+            return nout/d_nfft;
           }
         }
       }

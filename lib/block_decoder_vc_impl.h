@@ -60,7 +60,8 @@ namespace gr {
       int d_ndbits;
       int d_dbits_cnt;
 
-      uint32_t d_hdr_reg;
+      //uint32_t d_hdr_reg;
+      uint8_t d_hdr_reg[3];
       uint8_t d_coded_buf[8192];
       uint8_t d_depun_buf[8192];
       uint8_t d_deint_buf[72];
