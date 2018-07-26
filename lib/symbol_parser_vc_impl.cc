@@ -66,6 +66,7 @@ namespace gr {
     void
     symbol_parser_vc_impl::symbol_eq(gr_complex* out,const gr_complex* in, int pilot_idx)
     {
+      int nout = 0;
       // maybe consider MMSE
       for(int i=0;i<d_nfft;i++){
         d_buf[d_desubcarr_idx[i]] = in[i] * d_channel_est[i];
@@ -79,24 +80,36 @@ namespace gr {
       float carrier_phase = (d_pilot_sign[pilot_idx]==1)? std::arg(scalar) : -std::arg(scalar);
       // FIXME:estimate attennuation
       for(int i=0;i<d_ndata;++i){
-        out[i] = gr_expj(-carrier_phase) * d_buf[d_datacarr_idx[i]];
+        if(d_subcarrier_type[i]==1)
+          out[nout++] = gr_expj(-carrier_phase) * d_buf[i];
       }
     }    
 
     void
     symbol_parser_vc_impl::channel_estimation(const gr_complex* in)
     {
-      gr_complex noise_pwr_est = gr_complex(1e-8,0);
+      gr_complex noise_pwr_est = gr_complex(1e-16,0);
+      gr_complex mmse_tmp[64];
+
       // there are 12 null subcarriers
       for(int i=0;i<d_nfft;++i){
         if(d_subcarrier_type [d_desubcarr_idx[i]] == 0){
           noise_pwr_est += std::norm(in[i]);
         }else{
           // including pilots and data subcarriers
-          d_channel_est[i] = d_long[d_desubcarr_idx[i]]/in[i];
+          // zero-forcing
+          //d_channel_est[i] = d_long[d_desubcarr_idx[i]]/in[i];
+          // MMSE
+          mmse_tmp[i] = std::conj(d_long[d_desubcarr_idx[i]]) * in[i];
         }
       }
       noise_pwr_est/=gr_complex(12.0,0);
+      // mmse normalization
+      for(int i=0;i<d_nfft;++i){
+        if(d_subcarrier_type[ d_desubcarr_idx[i]] != 0){
+          d_channel_est[i] = (std::norm(in[i]) + noise_pwr_est) / mmse_tmp[i];
+        }
+      }
     }
 
     void
@@ -141,9 +154,11 @@ namespace gr {
         // 1. Feq
         // 2. pilot 
         // channel gain & carrier phase
-        //symbol_eq(&out[nout],&in[i*d_nfft],d_pilot_idx);
+        symbol_eq(&out[d_ndata*ncon],&in[ncon*d_nfft],d_pilot_idx);
+        /*
         for(int j=0;j<d_ndata;++j)
           out[d_ndata*ncon+j] = in[ncon*d_nfft+d_datacarr_idx[j]];
+        */
         add_item_tag(0,nitems_written(0)+nout/d_ndata,pmt::intern("symbol_idx"),pmt::from_long(d_pilot_idx),d_bname);
         d_pilot_idx++;
         d_pilot_idx %= 127;

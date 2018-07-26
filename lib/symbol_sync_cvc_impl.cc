@@ -102,8 +102,8 @@ namespace gr {
           volk_32fc_x2_dot_prod_32fc(&d_second_long,&in[ncon+d_nfft],d_conj_long,d_nfft);
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],d_nfft);
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+d_nfft],&in[ncon+d_nfft],d_nfft);
-          first_cross = std::abs(d_first_long)/(std::sqrt(std::abs(eng_fir*d_long_eng))+1e-7);
-          second_cross = std::abs(d_second_long)/(std::sqrt(std::abs(eng_sec*d_long_eng))+1e-7);
+          first_cross = std::abs(d_first_long)/(std::sqrt(std::abs(eng_fir*d_long_eng))+1e-12);
+          second_cross = std::abs(d_second_long)/(std::sqrt(std::abs(eng_sec*d_long_eng))+1e-12);
           if( first_cross > d_thres && second_cross > d_thres){
           // sync of long preamble
           // fine-tune the first one for it contains no smoothed symbols
@@ -135,7 +135,7 @@ namespace gr {
           volk_32fc_x2_conjugate_dot_prod_32fc(&tmp_auto, &in[ncon+d_nfft], &in[ncon], d_ncp);
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_fir,&in[ncon],&in[ncon],d_ncp);
           volk_32fc_x2_conjugate_dot_prod_32fc(&eng_sec,&in[ncon+d_nfft],&in[ncon+d_nfft],d_ncp);
-          data_cross = std::abs(tmp_auto)/(std::sqrt(std::abs(eng_fir*eng_sec))+1e-7);
+          data_cross = std::abs(tmp_auto)/(std::sqrt(std::abs(eng_fir*eng_sec))+1e-12);
           if(data_cross > d_thres){
             // still sync
             fine_cfo = std::arg(tmp_auto)/(float)d_nfft;

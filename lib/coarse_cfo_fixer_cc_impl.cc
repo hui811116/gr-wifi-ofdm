@@ -30,8 +30,8 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define TWO_PI M_PI
-    #define d_debug 0
+    #define TWO_PI 2 * M_PI
+    #define d_debug 1
     #define dout d_debug && std::cout
     static const int d_length = 48;
     static const int d_cap = 8192*2;
@@ -120,7 +120,7 @@ namespace gr {
         nom += d_inXdelay[d_length-1+ngen];
         inpwr += d_inSqu[d_length-1+ngen];
         delpwr += d_delaySqu[d_length-1+ngen];
-        tmp_auto = std::abs(nom)/(std::sqrt(std::abs(inpwr*delpwr))+1e-7);
+        tmp_auto = std::abs(nom)/(std::sqrt(std::abs(inpwr*delpwr))+1e-12);
         // main loop
         if(d_nCnt){
           d_nCnt--;
