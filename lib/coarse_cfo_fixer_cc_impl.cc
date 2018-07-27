@@ -31,9 +31,8 @@
 namespace gr {
   namespace wifi_ofdm {
     #define TWO_PI 2 * M_PI
-    #define d_debug 1
+    #define d_debug 0
     #define dout d_debug && std::cout
-    static const int d_length = 48;
     static const int d_cap = 8192*2;
     static const float d_threshold = 0.9;
     static const int d_escape = 320;
@@ -57,18 +56,18 @@ namespace gr {
       : gr::block("coarse_cfo_fixer_cc",
               gr::io_signature::make2(2, 2, sizeof(gr_complex),sizeof(gr_complex)),
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
-              d_bname(pmt::intern(alias()))
+              d_bname(pmt::intern(alias())),
+              d_delay(delay)
     {
       set_tag_propagation_policy(TPP_DONT);
 
-      set_max_noutput_items(d_cap-d_length);
-      set_history(d_length);
+      set_max_noutput_items(d_cap-delay);
+      set_history(delay);
       d_inXdelay = (gr_complex*) volk_malloc(sizeof(gr_complex)*d_cap,volk_get_alignment());
       d_inSqu = (gr_complex*) volk_malloc(sizeof(gr_complex)*d_cap,volk_get_alignment());
       d_delaySqu = (gr_complex*) volk_malloc(sizeof(gr_complex)*d_cap,volk_get_alignment());
       d_state = 0;
       d_nCnt =0;
-      d_delay = delay;
       d_phase = 0;
     }
 
@@ -100,7 +99,7 @@ namespace gr {
       const gr_complex *delay= (const gr_complex *) input_items[1];
       gr_complex *out = (gr_complex *) output_items[0];
       int nout = std::max(std::min(noutput_items,std::min(ninput_items[0],ninput_items[1])-(int)history()+1),0);
-      int nin = nout+d_length-1;
+      int nin = nout+d_delay-1;
       float tmp_auto;
       if(nout==0){
         consume_each(0);
@@ -110,40 +109,50 @@ namespace gr {
       volk_32fc_x2_multiply_conjugate_32fc(d_inSqu,in,in,nin);
       volk_32fc_x2_multiply_conjugate_32fc(d_delaySqu,delay,delay,nin);
       gr_complex nom(0,0), inpwr(0,0), delpwr(0,0);
-      for(int i=0;i<d_length-1;++i){
+      for(int i=0;i<d_delay-1;++i){
         nom += d_inXdelay[i];
         inpwr += d_inSqu[i];
         delpwr += d_delaySqu[i];
       }
       int ngen =0 ;
       while(ngen<nout){
-        nom += d_inXdelay[d_length-1+ngen];
-        inpwr += d_inSqu[d_length-1+ngen];
-        delpwr += d_delaySqu[d_length-1+ngen];
-        tmp_auto = std::abs(nom)/(std::sqrt(std::abs(inpwr*delpwr))+1e-12);
-        // main loop
-        if(d_nCnt){
-          d_nCnt--;
-        }else if(tmp_auto>d_threshold && tmp_auto<=1.0f){
-          dout<<"DEBUG-CoarseCfo: auto val--nom="<<std::abs(nom)<<",inpwr="<<std::abs(inpwr)<<" ,delpwr="<<std::abs(delpwr)<<std::endl;
-          d_nCnt = d_escape;
-          d_coarse_cfo = std::arg(nom)/(float)d_delay;
-          add_item_tag(0,nitems_written(0)+ngen,pmt::intern("cfo_est"),pmt::from_float(d_coarse_cfo),d_bname);
-          dout<<"DEBUG-CoarseCfo:auto_calc="<<tmp_auto<<" ,cfo_est="<<d_coarse_cfo<<" ,added at:"<<nitems_written(0)+ngen<<std::endl;
-        }
+        nom += d_inXdelay[d_delay-1+ngen];
+        inpwr += d_inSqu[d_delay-1+ngen];
+        delpwr += d_delaySqu[d_delay-1+ngen];
         out[ngen] = in[ngen] * gr_expj(-d_phase); // conj(delay) * in --> cfo
         d_phase += d_coarse_cfo;
         phase_wrap(d_phase);
+        tmp_auto = std::abs(nom)/(std::sqrt(std::abs(inpwr*delpwr))+1e-12);
+        // main loop
+        if(d_state==1){
+          d_nCnt--;
+          if(d_nCnt == 0){
+            d_state = 0;
+          }
+        }else{
+          // state ==0
+          if(tmp_auto>d_threshold && tmp_auto<=1.0f){
+            d_nCnt++;
+            if(d_nCnt == d_delay){
+              d_state = 1;
+              dout<<"DEBUG-CoarseCfo: auto val--nom="<<std::abs(nom)<<",inpwr="<<std::abs(inpwr)<<" ,delpwr="<<std::abs(delpwr)<<std::endl;
+              d_nCnt = d_escape;
+              d_phase = 0;
+              d_coarse_cfo = std::arg(nom)/(float)d_delay;
+              add_item_tag(0,nitems_written(0)+ngen,pmt::intern("cfo_est"),pmt::from_float(d_coarse_cfo),d_bname);
+              dout<<"DEBUG-CoarseCfo:auto_calc="<<tmp_auto<<" ,cfo_est="<<d_coarse_cfo<<" ,added at:"<<nitems_written(0)+ngen<<std::endl;
+            }
+          }else{
+            d_nCnt =0;
+          }
+        }
         nom -= d_inXdelay[ngen];
         inpwr -= d_inSqu[ngen];
         delpwr -= d_delaySqu[ngen];
         ngen++;
       }
-      // Tell runtime system how many input items we consumed on
-      // each input stream.
+      
       consume_each (nout);
-
-      // Tell runtime system how many output items we produced.
       return nout;
     }
 

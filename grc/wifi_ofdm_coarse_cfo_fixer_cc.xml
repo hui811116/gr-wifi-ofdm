@@ -11,7 +11,7 @@
        * key (makes the value accessible as $keyname, e.g. in the make node)
        * type -->
   <param>
-    <name>Delay</name>
+    <name>Span</name>
     <key>delay</key>
     <value>16</value>
     <type>int</type>
