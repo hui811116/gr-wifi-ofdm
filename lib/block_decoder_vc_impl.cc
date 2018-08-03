@@ -34,9 +34,21 @@ namespace gr {
     #define dout d_debug && std::cout
     static const int d_ndata = 48;
     static const pmt::pmt_t d_hdr_tag = pmt::intern("hdr");
+    enum RATESET{
+      RATE6MBPS=0x0B,
+      RATE9MBPS=0x0F,
+      RATE12MBPS=0x0A,
+      RATE18MBPS=0x0E,
+      RATE24MBPS=0x09,
+      RATE36MBPS=0x0D,
+      RATE48MBPS=0x08,
+      RATE54MBPS=0x0C
+    };
+    /*
     static constexpr unsigned char d_rateSet[8]= {
         0x0B, 0x0F, 0x0A, 0x0E, 0x09, 0x0D, 0x08, 0x0C
     };
+    */
     // for depuncturing
     static const unsigned char d_pun23[12] = {0,0,0,1,0,0,0,1,0,0,0,1};
     static const unsigned char d_pun34[18] = {0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0};
@@ -238,7 +250,8 @@ namespace gr {
         d_length |= (d_hdr_reg[2] & 0x01) << (11);
         d_ndbits = 16 + d_length * 8 + 6;
         switch(d_rate){
-          case d_rateSet[0]:
+          //case d_rateSet[0]:
+          case RATE6MBPS:
             dout<<", datarate:[ 6Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_BPSK;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)24 );
@@ -246,7 +259,8 @@ namespace gr {
             d_deint_ptr = d_deint48;
             d_rate_key = pmt::from_long(6);
           break;
-          case d_rateSet[1]:
+          //case d_rateSet[1]:
+          case RATE9MBPS:
             dout<<", datarate:[ 9Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_BPSK;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)36 );
@@ -255,7 +269,8 @@ namespace gr {
             d_rate_key = pmt::from_long(9);
             d_depun_ptr = d_pun34;
           break;
-          case d_rateSet[2]:
+          //case d_rateSet[2]:
+          case RATE12MBPS:
             dout<<", datarate:[ 12Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QPSK;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)48 );
@@ -263,7 +278,8 @@ namespace gr {
             d_deint_ptr = d_deint96;
             d_rate_key = pmt::from_long(12);
           break;
-          case d_rateSet[3]:
+          //case d_rateSet[3]:
+          case RATE18MBPS:
             dout<<", datarate:[ 18Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QPSK;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)72 );
@@ -272,7 +288,8 @@ namespace gr {
             d_rate_key = pmt::from_long(18);
             d_depun_ptr = d_pun34;
           break;
-          case d_rateSet[4]:
+          //case d_rateSet[4]:
+          case RATE24MBPS:
             dout<<", datarate:[ 24Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM16;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)96 );
@@ -280,7 +297,8 @@ namespace gr {
             d_deint_ptr = d_deint192_2;
             d_rate_key = pmt::from_long(24);
           break;
-          case d_rateSet[5]:
+          //case d_rateSet[5]:
+          case RATE36MBPS:
             dout<<", datarate:[ 36Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM16;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)144 );
@@ -289,7 +307,8 @@ namespace gr {
             d_rate_key = pmt::from_long(36);
             d_depun_ptr = d_pun34;
           break;
-          case d_rateSet[6]:
+          //case d_rateSet[6]:
+          case RATE48MBPS:
             dout<<", datarate:[ 48Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM64;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)192 );
@@ -298,7 +317,8 @@ namespace gr {
             d_rate_key = pmt::from_long(48);
             d_depun_ptr = d_pun23;
           break;
-          case d_rateSet[7]:
+          //case d_rateSet[7]:
+          case RATE54MBPS:
             dout<<", datarate:[ 54Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM64;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)216 );
@@ -336,12 +356,14 @@ namespace gr {
       }
 
       // puncturing
-      if(d_rate == d_rateSet[0] || d_rate == d_rateSet[2] || d_rate == d_rateSet[4]){
+      //if(d_rate == d_rateSet[0] || d_rate == d_rateSet[2] || d_rate == d_rateSet[4]){
+      if(d_rate == RATE6MBPS || d_rate == RATE12MBPS || d_rate == RATE36MBPS){
         // rate 1/2, do nothing
         blob = pmt::make_blob(d_coded_buf,nbytes);
       }else{
         std::memset(d_depun_buf,0,nbytes);
-        int punsize = (d_rate==d_rateSet[6])? 12 : 18;
+        //int punsize = (d_rate==d_rateSet[6])? 12 : 18;
+        int punsize = (d_rate == RATE48MBPS)? 12 : 18;
         while(nout<d_ndbits){
           if(d_depun_ptr[ ncon++ % punsize]==1){
             uint8_t rndbit = (dist(gen))? 0x01 : 0x00;

@@ -105,7 +105,7 @@ namespace gr {
     	void service_and_seed()
     	{
     		d_seed_est = 0x00;
-    		d_seed_est |= ((d_decode[0]>>2)   ^ (d_decode[0]>>6)  & 0x01);
+    		d_seed_est |= (((d_decode[0]>>2)  ^ (d_decode[0]>>6)) & 0x01);
     		d_seed_est |= ((((d_decode[0]>>1) ^ (d_decode[0]>>5)) & 0x01) << 1);
     		d_seed_est |= ((((d_decode[0])    ^ (d_decode[0]>>4)) & 0x01) << 2);
     		d_seed_est |= ((((d_decode[0]>>2) ^ (d_decode[0]>>6) ^ (d_decode[0]>>3)) & 0x01) << 3);

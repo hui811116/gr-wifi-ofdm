@@ -27,12 +27,11 @@ install(FILES
     packet_builder.h
     header_prefixer.h
     ppdu_builder.h
-    decode_header.h
     symbol_mapper_bvc.h
     cp_preamble_prefixer_vcc.h
     coarse_cfo_fixer_cc.h
     symbol_sync_cvc.h
     block_decoder_vc.h
     ppdu_sink.h
-    debug_collector_vcvc.h DESTINATION include/wifi_ofdm
+    DESTINATION include/wifi_ofdm
 )

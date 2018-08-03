@@ -25,21 +25,18 @@ include(GrPlatform) #define LIB_SUFFIX
 
 include_directories(${Boost_INCLUDE_DIR} ${VOLK_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS} ${VOLK_LIBRARY_DIRS})
-
 list(APPEND wifi_ofdm_sources
     symbol_parser_vc_impl.cc
     packet_builder_impl.cc
     header_prefixer.cc
     ppdu_builder.cc
-    decode_header.cc
     symbol_mapper_bvc_impl.cc
     cp_preamble_prefixer_vcc_impl.cc
     coarse_cfo_fixer_cc_impl.cc
     symbol_sync_cvc_impl.cc
     block_decoder_vc_impl.cc
     ppdu_sink.cc
-    debug_collector_vcvc_impl.cc
-)
+    )
 
 set(wifi_ofdm_sources "${wifi_ofdm_sources}" PARENT_SCOPE)
 if(NOT wifi_ofdm_sources)
