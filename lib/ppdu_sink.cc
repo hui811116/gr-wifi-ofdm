@@ -201,12 +201,12 @@ namespace gr {
       	cur = 0;
       	for(int i=1;i< (ncnt%1024) ;++i){
       		nex0 = d_track[ncnt%1024-i][cur];
-      		d_decode[(ncnt-i)/8] |= ((cur&0x01) << (ncnt-i)%8);
+      		d_decode[(ncnt-i)/8] |= ((cur&0x01) << ((ncnt-i)%8) );
       		cur = nex0;
       	}
       	// last one
       	d_decode[nwrite/8] |= ((cur & 0x01) << (nwrite%8));
-      	nwrite += ncnt%1024;
+      	nwrite += (ncnt%1024);
       	return true;
     	}
     	
