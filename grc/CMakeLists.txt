@@ -17,18 +17,16 @@
 # along with GNU Radio; see the file COPYING.  If not, write to
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
-
 install(FILES
     wifi_ofdm_symbol_parser_vc.xml
     wifi_ofdm_packet_builder.xml
     wifi_ofdm_header_prefixer.xml
     wifi_ofdm_ppdu_builder.xml
-    wifi_ofdm_decode_header.xml
     wifi_ofdm_symbol_mapper_bvc.xml
     wifi_ofdm_cp_preamble_prefixer_vcc.xml
     wifi_ofdm_coarse_cfo_fixer_cc.xml
     wifi_ofdm_symbol_sync_cvc.xml
     wifi_ofdm_block_decoder_vc.xml
     wifi_ofdm_ppdu_sink.xml
-    wifi_ofdm_debug_collector_vcvc.xml DESTINATION share/gnuradio/grc/blocks
+    DESTINATION share/gnuradio/grc/blocks
 )
