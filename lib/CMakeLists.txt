@@ -27,7 +27,6 @@ include_directories(${Boost_INCLUDE_DIR} ${VOLK_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS} ${VOLK_LIBRARY_DIRS})
 list(APPEND wifi_ofdm_sources
     symbol_parser_vc_impl.cc
-    packet_builder_impl.cc
     header_prefixer.cc
     ppdu_builder.cc
     symbol_mapper_bvc_impl.cc

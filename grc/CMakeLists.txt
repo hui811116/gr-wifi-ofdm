@@ -19,7 +19,6 @@
 # Boston, MA 02110-1301, USA.
 install(FILES
     wifi_ofdm_symbol_parser_vc.xml
-    wifi_ofdm_packet_builder.xml
     wifi_ofdm_header_prefixer.xml
     wifi_ofdm_ppdu_builder.xml
     wifi_ofdm_symbol_mapper_bvc.xml

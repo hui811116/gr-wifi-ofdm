@@ -24,7 +24,6 @@
 install(FILES
     api.h
     symbol_parser_vc.h
-    packet_builder.h
     header_prefixer.h
     ppdu_builder.h
     symbol_mapper_bvc.h

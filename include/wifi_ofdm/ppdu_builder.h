@@ -36,7 +36,7 @@ namespace gr {
     {
     public:
       typedef boost::shared_ptr<ppdu_builder> sptr;
-      static sptr make(int seed);
+      static sptr make(int seed,int rate);
     };
 
   } // namespace wifi_ofdm

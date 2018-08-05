@@ -67,15 +67,8 @@ namespace gr {
     		// conv_dec
     		if(conv_dec(uvec,io)){
     			// finish decoding
-          /*
-    			dout<<"decoded output:"<<std::endl;
-          for(int i=0;i<io/2-1;++i)
-            dout<<" "<<(int)d_decode[i];
-          dout<<std::endl;
-          */
     			// check service field and seed
     			service_and_seed();
-          //dout<<"estimated seed="<<(int)d_seed_est<<std::endl;
     			// next step, descramble decoded bits
     			descramble(io*4-2-6);
     			// publish payload

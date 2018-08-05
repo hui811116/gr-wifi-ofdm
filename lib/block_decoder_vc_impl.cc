@@ -44,11 +44,6 @@ namespace gr {
       RATE48MBPS=0x08,
       RATE54MBPS=0x0C
     };
-    /*
-    static constexpr unsigned char d_rateSet[8]= {
-        0x0B, 0x0F, 0x0A, 0x0E, 0x09, 0x0D, 0x08, 0x0C
-    };
-    */
     // for depuncturing
     static const unsigned char d_pun23[12] = {0,0,0,1,0,0,0,1,0,0,0,1};
     static const unsigned char d_pun34[18] = {0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0};
@@ -73,7 +68,6 @@ namespace gr {
     {
       d_nsymbol =0;
       d_sym_cnt =0;
-      d_dbits_cnt=0;
       message_port_register_out(d_out_port);
     }
 
@@ -85,26 +79,26 @@ namespace gr {
     }
 
     void
-    block_decoder_vc_impl::demod_BPSK(uint8_t* out, const gr_complex* in, int nin)
+    block_decoder_vc_impl::demod_BPSK(uint8_t* out, const gr_complex* in)
     {
       for(int i=0;i<48;++i){
-        out[d_dbits_cnt/8] |= (( (std::real(in[i])>0)?0x01:0x00 ) << (d_dbits_cnt%8));
-        d_dbits_cnt++;
+        out[d_ncbits_cnt/8] |= (( (std::real(in[i])>0)?0x01:0x00 ) << (d_ncbits_cnt%8));
+        d_ncbits_cnt++;
       }
     }
 
     void
-    block_decoder_vc_impl::demod_QPSK(uint8_t* out, const gr_complex* in, int nin)
+    block_decoder_vc_impl::demod_QPSK(uint8_t* out, const gr_complex* in)
     {
       for(int i=0;i<48;++i){
-        out[d_dbits_cnt/8] |= (((std::real(in[i])>0)?0x01:0x00) << ( d_dbits_cnt %8));
-        out[(d_dbits_cnt+1)/8] |= (((std::imag(in[i])>0)?0x01:0x00) << ((d_dbits_cnt+1)%8) );
-        d_dbits_cnt+=2;
+        out[d_ncbits_cnt/8] |= (((std::real(in[i])>0)?0x01:0x00) << ( d_ncbits_cnt %8));
+        out[(d_ncbits_cnt+1)/8] |= (((std::imag(in[i])>0)?0x01:0x00) << ((d_ncbits_cnt+1)%8) );
+        d_ncbits_cnt+=2;
       }
     }
 
     void
-    block_decoder_vc_impl::demod_QAM16(uint8_t* out, const gr_complex* in, int nin)
+    block_decoder_vc_impl::demod_QAM16(uint8_t* out, const gr_complex* in)
     {
       float i_min = FLT_MAX, q_min = FLT_MAX, i_tmp,q_tmp;
       uint8_t i_idx = 0, q_idx = 0;
@@ -123,14 +117,14 @@ namespace gr {
           }
         }
         // insert four bits
-        out[d_dbits_cnt/8] |= (i_idx << (d_dbits_cnt%8));
-        out[(d_dbits_cnt+2)/8] |= (q_idx<< ( (d_dbits_cnt+2) %8));
-        d_dbits_cnt += 4;
+        out[d_ncbits_cnt/8] |= (i_idx << (d_ncbits_cnt%8));
+        out[(d_ncbits_cnt+2)/8] |= (q_idx<< ( (d_ncbits_cnt+2) %8));
+        d_ncbits_cnt += 4;
       }
     }
 
     void
-    block_decoder_vc_impl::demod_QAM64(uint8_t* out, const gr_complex* in, int nin)
+    block_decoder_vc_impl::demod_QAM64(uint8_t* out, const gr_complex* in)
     {
       float i_min = FLT_MAX, q_min = FLT_MAX, i_tmp,q_tmp;
       uint8_t i_idx = 0, q_idx = 0;
@@ -149,8 +143,8 @@ namespace gr {
         }
         i_idx |= (q_idx << 3); // tmp holder
         for(int k=0;k<6;++k){
-          out[d_dbits_cnt/8] |= (((i_idx>>k)& 0x01) << (d_dbits_cnt%8));
-          d_dbits_cnt++;
+          out[d_ncbits_cnt/8] |= (((i_idx>>k)& 0x01) << (d_ncbits_cnt%8));
+          d_ncbits_cnt++;
         }
       }
     }
@@ -164,23 +158,11 @@ namespace gr {
       for(int i=0;i<48;++i){
         tmp_reg2[i/8] |= (((std::real(in[i])>0)? 0x01: 0x00)<<(i%8));
       }
-      /*
-      dout<<"rx interleaved bits"<<std::endl;
-      for(int i=0;i<48;++i)
-        dout<<" "<<(int)( (tmp_reg2[i/8]>>(i%8)) & 0x01);
-      dout<<std::endl;
-      */
       for(int i=0;i<48;++i){
         int idx = d_deint[i];
         uint8_t tmpbit = (tmp_reg2[idx/8] >> (idx%8)) & 0x01;
         d_hdr_debytes[i/8] |= (tmpbit << (i%8));
       }
-      /*
-      dout<<"rx coded bits="<<std::endl;
-      for(int i=0;i<48;++i)
-        dout<<" "<<(int)((d_hdr_debytes[i/8]>>(i%8)) & 0x01);
-      dout<<std::endl;
-      */
       for(int i=0;i<24;++i){
         for(int j=0;j<64;++j)
           d_hdr_cost[i][j] = UINT_MAX;
@@ -233,12 +215,6 @@ namespace gr {
       }
       // last bit
       d_hdr_reg[0] |= (cur & 0x01);
-      /*
-      dout<<"decoded hdr bits:"<<std::endl;
-      for(int i=0;i<24;++i)
-        dout<<" "<<(int)((d_hdr_reg[i/8]>>(i%8)) &0x01);
-      dout<<std::endl;
-      */
       uint8_t parity = 0x00;
       for(int i=0;i<18;++i){
         parity ^= ((d_hdr_reg[i/8]>>(i%8)) & 0x01);
@@ -250,26 +226,25 @@ namespace gr {
         d_length |= (d_hdr_reg[2] & 0x01) << (11);
         d_ndbits = 16 + d_length * 8 + 6;
         switch(d_rate){
-          //case d_rateSet[0]:
           case RATE6MBPS:
             dout<<", datarate:[ 6Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_BPSK;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)24 );
             d_ncbps = 48;
-            d_deint_ptr = d_deint48;
+            d_deint_ptr = d_deint;
             d_rate_key = pmt::from_long(6);
+            d_ncbits_len = d_ndbits*2;
           break;
-          //case d_rateSet[1]:
           case RATE9MBPS:
             dout<<", datarate:[ 9Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_BPSK;
             d_nsymbol = ceil( (16 + d_length * 8 + 6)/(float)36 );
             d_ncbps = 48;
-            d_deint_ptr = d_deint48;
+            d_deint_ptr = d_deint;
             d_rate_key = pmt::from_long(9);
             d_depun_ptr = d_pun34;
+            d_ncbits_len = ceil(d_ndbits*4/(float)3.0);
           break;
-          //case d_rateSet[2]:
           case RATE12MBPS:
             dout<<", datarate:[ 12Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QPSK;
@@ -277,8 +252,8 @@ namespace gr {
             d_ncbps = 96;
             d_deint_ptr = d_deint96;
             d_rate_key = pmt::from_long(12);
+            d_ncbits_len = d_ndbits*2;
           break;
-          //case d_rateSet[3]:
           case RATE18MBPS:
             dout<<", datarate:[ 18Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QPSK;
@@ -287,8 +262,8 @@ namespace gr {
             d_deint_ptr = d_deint96;
             d_rate_key = pmt::from_long(18);
             d_depun_ptr = d_pun34;
+            d_ncbits_len = ceil(d_ndbits*4/(float)3.0);
           break;
-          //case d_rateSet[4]:
           case RATE24MBPS:
             dout<<", datarate:[ 24Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM16;
@@ -296,8 +271,8 @@ namespace gr {
             d_ncbps = 192;
             d_deint_ptr = d_deint192_2;
             d_rate_key = pmt::from_long(24);
+            d_ncbits_len = d_ndbits*2;
           break;
-          //case d_rateSet[5]:
           case RATE36MBPS:
             dout<<", datarate:[ 36Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM16;
@@ -306,8 +281,8 @@ namespace gr {
             d_deint_ptr = d_deint192_2;
             d_rate_key = pmt::from_long(36);
             d_depun_ptr = d_pun34;
+            d_ncbits_len = ceil(d_ndbits*4/(float)3.0);
           break;
-          //case d_rateSet[6]:
           case RATE48MBPS:
             dout<<", datarate:[ 48Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM64;
@@ -316,8 +291,8 @@ namespace gr {
             d_deint_ptr = d_deint288_2;
             d_rate_key = pmt::from_long(48);
             d_depun_ptr = d_pun23;
+            d_ncbits_len = ceil(d_ndbits*3/(float)2.0);
           break;
-          //case d_rateSet[7]:
           case RATE54MBPS:
             dout<<", datarate:[ 54Mbps ], length="<<(int)d_length<<" bytes"<<std::endl;
             d_data_demod = &block_decoder_vc_impl::demod_QAM64;
@@ -326,6 +301,7 @@ namespace gr {
             d_deint_ptr = d_deint288_2;
             d_rate_key = pmt::from_long(54);
             d_depun_ptr = d_pun34;
+            d_ncbits_len = ceil(d_ndbits*4/(float)3.0);
           break;
           default:
             dout<<", undefined data rate, abort"<<std::endl;
@@ -342,7 +318,7 @@ namespace gr {
     void
     block_decoder_vc_impl::deint_depunc_and_pub()
     {
-      int nout=0, ncon=0, nbytes=ceil(d_ndbits*2/8.0);// last two bytes contains outputs of the 6 appended zeros
+      int nout=0, ncon=0, nbytes = d_nsymbol * d_ncbps / 8;
       pmt::pmt_t blob; // output deinterleaved and depuntured bytes
       for(int i=0;i<d_nsymbol;++i){
         std::memset(d_deint_buf,0,36);
@@ -354,26 +330,24 @@ namespace gr {
         // repaste to coded buf
         memcpy(&d_coded_buf[offset],d_deint_buf,sizeof(char)*(d_ncbps/8));
       }
-
       // puncturing
-      //if(d_rate == d_rateSet[0] || d_rate == d_rateSet[2] || d_rate == d_rateSet[4]){
       if(d_rate == RATE6MBPS || d_rate == RATE12MBPS || d_rate == RATE36MBPS){
         // rate 1/2, do nothing
-        blob = pmt::make_blob(d_coded_buf,nbytes);
+        blob = pmt::make_blob(d_coded_buf,2*d_length+6); // service=4 bytes, 6 padded zeros= 1.5 bytes
       }else{
         std::memset(d_depun_buf,0,nbytes);
-        //int punsize = (d_rate==d_rateSet[6])? 12 : 18;
         int punsize = (d_rate == RATE48MBPS)? 12 : 18;
         while(nout<d_ndbits){
-          if(d_depun_ptr[ ncon++ % punsize]==1){
+          if(d_depun_ptr[ ncon % punsize] == 1){
             uint8_t rndbit = (dist(gen))? 0x01 : 0x00;
             d_depun_buf[nout/8] |= (rndbit << (nout%8));
           }else{
             d_depun_buf[nout/8] |= ( ((d_coded_buf[ncon/8] >> (ncon%8)) & 0x01 ) << (nout%8));
           }
+          ncon++;
           nout++;
         }
-        blob = pmt::make_blob(d_coded_buf,nbytes);
+        blob = pmt::make_blob(d_coded_buf,2*d_length+6);
       }
       message_port_pub(d_out_port,pmt::cons(d_rate_key,blob));
     }
@@ -392,24 +366,28 @@ namespace gr {
         if(tags[0].offset==nitems_read(0)){
           if(decode_hdr(&in[0])){
             // valid header
-            std::memset(d_coded_buf,0,d_length*2);
-            d_dbits_cnt =0;
+            std::memset(d_coded_buf,0,d_ndbits/4); //(d_ndbits * 2 / 8) , 133,171 coded, change to bytes form
+            d_ncbits_cnt = 0;
+            d_symbol_cnt = 0;
           }else{
             d_ndbits =0;
           }
+          return 1;
         }else{
           nout = tags[0].offset-nitems_read(0);
         }
       }
       for(int i=0;i<nout;++i){
         if(d_ndbits>0){
-          (*this.*d_data_demod)(d_coded_buf,&in[d_ndata*i],d_ndbits-d_dbits_cnt);
-          if(d_ndbits <= d_dbits_cnt){
+          d_symbol_cnt++;
+          (*this.*d_data_demod)(d_coded_buf,&in[d_ndata*i]);
+          if(d_symbol_cnt == d_nsymbol){
             // all data bits collected
             // deinterleave
             deint_depunc_and_pub();
             // reset
-            d_ndbits =0;  
+            d_ndbits = 0;
+            d_symbol_cnt = 0;
           }
         }
       }

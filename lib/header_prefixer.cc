@@ -91,8 +91,9 @@ namespace gr {
     		pmt::pmt_t v = pmt::cdr(msg);
     		size_t io(0);
     		const uint8_t* uvec = pmt::u8vector_elements(v,io);
-    		//assert(io<4096); // 2**12
-    		d_u16len = (uint16_t) io;
+            int datalen = pmt::to_long(k);
+
+    		d_u16len = (uint16_t) datalen;
     		d_u8ptr = (uint8_t*) & d_u16len;
     		d_hdr_buf[0] = d_rateSet[d_rate];
     		// first 4 bits are rate, which is already set
@@ -127,7 +128,7 @@ namespace gr {
             // d_out contains the produced header, 6 bytes
             std::memcpy(d_copy+WIFI80211A_HEADER_BYTES, uvec, sizeof(char) * io);
             pmt::pmt_t blob = pmt::make_blob(d_copy,io+WIFI80211A_HEADER_BYTES);
-            message_port_pub(d_out_port,pmt::cons(d_rate_k,blob));
+            message_port_pub(d_out_port,pmt::cons(pmt::PMT_NIL,blob));
     	}
 
     private:
@@ -166,7 +167,7 @@ namespace gr {
     	unsigned char d_hdr_buf[8];
     	unsigned char d_enc[8];
         unsigned char d_out[8];
-        unsigned char d_copy[4102];
+        unsigned char d_copy[8200];
     };
 
     header_prefixer::sptr

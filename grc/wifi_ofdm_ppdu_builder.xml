@@ -4,7 +4,7 @@
   <key>wifi_ofdm_ppdu_builder</key>
   <category>[wifi_ofdm]</category>
   <import>import wifi_ofdm</import>
-  <make>wifi_ofdm.ppdu_builder($seed)</make>
+  <make>wifi_ofdm.ppdu_builder($seed,$rate)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
@@ -15,6 +15,44 @@
     <key>seed</key>
     <value>255</value>
     <type>int</type>
+  </param>
+  <param>
+    <name>Rate</name>
+    <key>rate</key>
+    <value>0</value>
+    <type>int</type>
+    <option>
+      <name>6MBps</name>
+      <key>0</key>
+    </option>
+    <option>
+      <name>9MBps</name>
+      <key>1</key>
+    </option>
+    <option>
+      <name>12MBps</name>
+      <key>2</key>
+    </option>
+    <option>
+      <name>18MBps</name>
+      <key>3</key>
+    </option>
+    <option>
+      <name>24MBps</name>
+      <key>4</key>
+    </option>
+    <option>
+      <name>36MBps</name>
+      <key>5</key>
+    </option>
+    <option>
+      <name>48MBps</name>
+      <key>6</key>
+    </option>
+    <option>
+      <name>54MBps</name>
+      <key>7</key>
+    </option>
   </param>
 
   <!-- Make one 'sink' node per input. Sub-nodes:

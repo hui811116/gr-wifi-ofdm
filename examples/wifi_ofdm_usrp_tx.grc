@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<?grc format='1' created='3.7.12'?>
+<?grc format='1' created='3.7.13'?>
 <flow_graph>
   <timestamp>Fri Jul 27 10:24:10 2018</timestamp>
   <block>
@@ -101,7 +101,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(264, 76)</value>
+      <value>(240, 52)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -113,7 +113,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>"name=NicB210"</value>
+      <value>"name=NI290101"</value>
     </param>
   </block>
   <block>
@@ -128,7 +128,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(184, 20)</value>
+      <value>(176, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -140,7 +140,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>2.6e9</value>
+      <value>915e6</value>
     </param>
   </block>
   <block>
@@ -155,7 +155,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(264, 20)</value>
+      <value>(232, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -167,7 +167,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>4e6</value>
+      <value>2e6</value>
     </param>
   </block>
   <block>
@@ -182,7 +182,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(648, 12)</value>
+      <value>(512, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -213,7 +213,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(392, 16)</value>
+      <value>(336, 12)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -276,7 +276,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(520, 16)</value>
+      <value>(424, 12)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -315,7 +315,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(184, 76)</value>
+      <value>(176, 52)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -350,7 +350,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(64, 196)</value>
+      <value>(56, 164)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -397,7 +397,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(816, 204)</value>
+      <value>(768, 164)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -448,7 +448,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(232, 184)</value>
+      <value>(224, 152)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -507,7 +507,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(416, 280)</value>
+      <value>(432, 260)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -562,7 +562,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(400, 492)</value>
+      <value>(464, 388)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -609,7 +609,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(96, 492)</value>
+      <value>(160, 388)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1316,7 +1316,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(656, 436)</value>
+      <value>(720, 340)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1487,7 +1487,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(192, 308)</value>
+      <value>(184, 276)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1534,7 +1534,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(456, 204)</value>
+      <value>(608, 164)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1573,7 +1573,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(624, 204)</value>
+      <value>(416, 164)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1589,6 +1589,10 @@
     </param>
     <param>
       <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>rate</key>
       <value>0</value>
     </param>
     <param>
@@ -1620,7 +1624,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(648, 300)</value>
+      <value>(656, 276)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1657,9 +1661,9 @@
   </connection>
   <connection>
     <source_block_id>blocks_random_pdu_0</source_block_id>
-    <sink_block_id>wifi_ofdm_header_prefixer_0</sink_block_id>
+    <sink_block_id>wifi_ofdm_ppdu_builder_0</sink_block_id>
     <source_key>pdus</source_key>
-    <sink_key>psdu_in</sink_key>
+    <sink_key>plcp_in</sink_key>
   </connection>
   <connection>
     <source_block_id>fft_vxx_0</source_block_id>
@@ -1687,15 +1691,15 @@
   </connection>
   <connection>
     <source_block_id>wifi_ofdm_header_prefixer_0</source_block_id>
-    <sink_block_id>wifi_ofdm_ppdu_builder_0</sink_block_id>
-    <source_key>ppdu_out</source_key>
-    <sink_key>plcp_in</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>wifi_ofdm_ppdu_builder_0</source_block_id>
     <sink_block_id>blocks_pdu_to_tagged_stream_0</sink_block_id>
     <source_key>ppdu_out</source_key>
     <sink_key>pdus</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>wifi_ofdm_ppdu_builder_0</source_block_id>
+    <sink_block_id>wifi_ofdm_header_prefixer_0</sink_block_id>
+    <source_key>ppdu_out</source_key>
+    <sink_key>psdu_in</sink_key>
   </connection>
   <connection>
     <source_block_id>wifi_ofdm_symbol_mapper_bvc_0</source_block_id>

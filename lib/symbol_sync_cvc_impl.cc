@@ -117,6 +117,7 @@ namespace gr {
             add_item_tag(0,nitems_written(0),pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
             // FIXME: find a more stable way to fine tune CFO
             volk_32fc_s32fc_x2_rotator_32fc(out,&in[ncon],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
+            //std::memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
             nout += d_nfft;
             ncon += d_nfft*2;
             dout <<"DEBUG--symbol_sync: first cross="<<first_cross<<" second_cross="<<second_cross
@@ -144,6 +145,7 @@ namespace gr {
             add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
             // FIXME: find a more stable way to fine tune CFO
             volk_32fc_s32fc_x2_rotator_32fc(&out[nout],&in[ncon+16],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
+            //std::memcpy(&out[nout],&in[ncon+16],sizeof(gr_complex)*d_nfft);
 
             nout += d_nfft;
             ncon += d_nsps;

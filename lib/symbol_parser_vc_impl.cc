@@ -154,7 +154,8 @@ namespace gr {
         // 1. Feq
         // 2. pilot 
         // channel gain & carrier phase
-        symbol_eq(&out[d_ndata*ncon],&in[ncon*d_nfft],d_pilot_idx);
+        symbol_eq(&out[nout],&in[ncon*d_nfft],d_pilot_idx);
+        // FIXME: find a stable way to fine tune CFO
         /*
         for(int j=0;j<d_ndata;++j)
           out[d_ndata*ncon+j] = in[ncon*d_nfft+d_datacarr_idx[j]];

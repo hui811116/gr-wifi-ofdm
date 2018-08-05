@@ -45,7 +45,7 @@ namespace gr {
     class ppdu_builder_impl : public ppdu_builder
     {
     public:
-    	ppdu_builder_impl(int seed) : block("ppdu_builder",
+    	ppdu_builder_impl(int seed,int rate) : block("ppdu_builder",
     		gr::io_signature::make(0,0,0),
     		gr::io_signature::make(0,0,0)),
     		d_in_port(pmt::mp("plcp_in")),
@@ -55,6 +55,54 @@ namespace gr {
     		message_port_register_in(d_in_port);
     		set_msg_handler(d_in_port,boost::bind(&ppdu_builder_impl::msg_in,this,_1));
     		d_seed = (unsigned char)seed;
+            switch(rate){
+                case 0:
+                    d_nbpsc = 1;
+                    d_ncbps = 48;
+                    d_ndbps = 24;
+                break;
+                case 1:
+                    d_nbpsc = 1;
+                    d_ncbps = 48;
+                    d_ndbps = 36;
+                break;
+                case 2:
+                    d_nbpsc = 2;
+                    d_ncbps = 96;
+                    d_ndbps = 48;
+                break;
+                case 3:
+                    d_nbpsc = 2;
+                    d_ncbps = 96;
+                    d_ndbps = 72;
+                break;
+                case 4:
+                    d_nbpsc = 4;
+                    d_ncbps = 192;
+                    d_ndbps = 96;
+                break;
+                case 5:
+                    d_nbpsc = 4;
+                    d_ncbps = 192;
+                    d_ndbps = 144;
+                break;
+                case 6:
+                    d_nbpsc = 6;
+                    d_ncbps = 288;
+                    d_ndbps = 192;
+                break;
+
+                case 7:
+                    d_nbpsc = 6;
+                    d_ncbps = 288;
+                    d_ndbps = 216;
+                break;
+
+                default:
+                    throw std::invalid_argument("Undefined Data rate, abort");
+                break;
+            }
+            d_rate = rate;
     	}
     	~ppdu_builder_impl(){}
     	void msg_in(pmt::pmt_t msg)
@@ -64,83 +112,61 @@ namespace gr {
     		size_t io(0);
     		const uint8_t* uvec = pmt::u8vector_elements(v,io);
     		// assert(io>6)
-    		std::memcpy(d_copy,uvec,sizeof(char)*PLCP_HEADER_BYTES); // first 6 bytes comprise plcp header
-    		if(k == pmt::intern("6Mbps")){
-    			d_nbpsc = 1;
-    			d_ncbps = 48;
-    			d_ndbps = 24;
-    		}else if(k == pmt::intern("9Mbps")){
-    			d_nbpsc = 1;
-    			d_ncbps = 48;
-    			d_ndbps = 36;
-    		}else if(k == pmt::intern("12Mbps")){
-    			d_nbpsc = 2;
-    			d_ncbps = 96;
-    			d_ndbps = 48;
-    		}else if(k == pmt::intern("18Mbps")){
-    			d_nbpsc = 2;
-    			d_ncbps = 96;
-    			d_ndbps = 72;
-    		}else if(k == pmt::intern("24Mbps")){
-    			d_nbpsc = 4;
-    			d_ncbps = 192;
-    			d_ndbps = 96;
-    		}else if(k == pmt::intern("36Mbps")){
-    			d_nbpsc = 4;
-    			d_ncbps = 192;
-    			d_ndbps = 144;
-    		}else if(k == pmt::intern("48Mbps")){
-    			d_nbpsc = 6;
-    			d_ncbps = 288;
-    			d_ndbps = 192;
-    		}else if(k == pmt::intern("54Mbps")){
-    			d_nbpsc = 6;
-    			d_ncbps = 288;
-    			d_ndbps = 216;
-    		}else{
-    			// undefined abort
-    			return;
-    		}
-    		build_data(uvec + PLCP_HEADER_BYTES,io - PLCP_HEADER_BYTES);
-            pmt::pmt_t blob = pmt::make_blob(d_copy,d_nout+PLCP_HEADER_BYTES);
-            message_port_pub(d_out_port,pmt::cons(pmt::PMT_NIL,blob));
+    		build_data(uvec,io);
+            pmt::pmt_t blob = pmt::make_blob(d_code,d_nout);
+            message_port_pub(d_out_port,pmt::cons(pmt::from_long(io),blob));
     	}
     private:
     	void build_data(const uint8_t* uvec, size_t nbyte){
-    		// copy
+    		// nbyte: number of uncoded ppdu bytes
     		int databits = (16+8*nbyte+6);
-    		std::memset(d_code,0,WIFI_SERVICE_BYTES); // first 2 bytes to zeros
-    		std::memcpy(d_code + WIFI_SERVICE_BYTES,uvec,sizeof(char)*nbyte);
     		int nsym = ceil(databits/(float)d_ndbps); // 16 bits service, 6 bits zeros
     		int npad = nsym * d_ndbps - databits;
             // only count the psdu, service, tails and padded zeros
-    		d_nout = ceil(nsym * d_ncbps /(float) 8.0);
+    		d_nout = nsym * d_ncbps / 8; // bytes that accounts for coded & punctured & interleaved bytes
     		// padding zeros
-    		std::memset(d_code+(WIFI_SERVICE_BYTES+nbyte),0,d_nout-(WIFI_SERVICE_BYTES+nbyte));
+            // reset memory
+            std::memset(d_code,0,d_nout);
     		// scrambling
     		d_nbits = databits+npad;
-    		scrambler();
+    		service_and_scrambler(uvec,nbyte*8,npad+6); // 6 zeros included to padded zeros
     		// null 6 bits (TAIL)
     		d_scramble[WIFI_SERVICE_BYTES+nbyte] = 0x00; // null the scrambled six bits
     		// conv_coding
-    		// (register code)
     		conv_enc();
-    		// pucturing (optional)
+    		// pucturing
     		puncturing();
             // interleaving
             interleaver();
             // ready to build bit-level packet
     	}
-    	void scrambler(){
+    	void service_and_scrambler(const uint8_t* uvec,int ndata, int nzero){
     		// initial seed
-    		std::memset(d_scramble,0,d_nout);
+            int ncnt;
+            // 
+    		std::memset(d_scramble,0,d_nbits/8);
     		d_scramble_reg = d_seed;
-    		unsigned char tmp; 
-    		for(int i=0;i<d_nbits;++i){
+    		unsigned char tmp;
+            // service 16 zeros
+            for(ncnt=0;ncnt<16;++ncnt){
+                tmp = ((d_scramble_reg>>3) ^ (d_scramble_reg>>6)) & 0x01;
+                d_scramble[ncnt/8] |= (tmp << (ncnt%8));
+                d_scramble_reg = ((d_scramble_reg<<1) | tmp);
+            }
+            // data bytes
+    		for(int i=0;i<ndata;++i){
     			tmp = ((d_scramble_reg>>3) ^ (d_scramble_reg>>6)) & 0x01;
-    			d_scramble[i/8] |= ( ( tmp ^ ((d_code[i/8]>>(i%8)) & 0x01) ) << (i%8) );
+    			d_scramble[ncnt/8] |= ( ( tmp ^ ((uvec[i/8]>>(i%8)) & 0x01) ) << (ncnt%8) );
     			d_scramble_reg = (d_scramble_reg<<1) | tmp;
+                ncnt++;
     		}
+            // padded zeros
+            for(int i=0;i<nzero;++i){
+                tmp = ((d_scramble_reg>>3) ^ (d_scramble_reg>>6)) & 0x01;
+                d_scramble[ncnt/8] |= (tmp << (ncnt%8));
+                d_scramble_reg = (d_scramble_reg<<1) | tmp;
+                ncnt++;
+            }
     	}
     	void conv_enc(){
     		std::memset(d_code,0,(int)ceil(d_nbits/4.0));
@@ -156,29 +182,32 @@ namespace gr {
     		}
     	}
     	void puncturing(){
-            // reuse d_scramble_reg
-            std::memset(d_scramble,0,d_nout);
-            int pcnt=0;
+            const unsigned char* pun_ptr;
+            int punPeriod;
+            std::memset(d_breg,0,36);
+            int pcnt=0, rewrite_cnt =0;
             unsigned char tmpbit;
             if(d_ndbps==24 || d_ndbps==48 || d_ndbps == 96){
-                memcpy(d_scramble,d_code,sizeof(char)*d_nout);
                 return;
             }else if(d_ndbps == 192){
                 // rate r= 2/3
-                for(int i=0;i<d_nbits*2;++i){
-                    tmpbit = (d_code[i/8] >> (i%8)) & 0x01;
-                    if(d_pun23[i % 12] == 0){
-                        d_scramble[pcnt/8] |= (tmpbit<<(pcnt % 8));
-                        pcnt++;
-                    }
-                }
+                pun_ptr = d_pun23;
+                punPeriod = 12;
             }else{
                 // rate r=3/4
-                for(int i=0;i<d_nbits*2;++i){
-                    tmpbit = (d_code[i/8] >> (i%8)) & 0x01;
-                    if(d_pun34[i % 18] == 0){
-                        d_scramble[pcnt/8] |= (tmpbit<<(pcnt % 8));
-                        pcnt++;
+                pun_ptr = d_pun34;
+                punPeriod = 18;
+            }
+            for(int i=0;i<d_nbits*2;++i){
+                tmpbit = (d_code[i/8] >> (i%8)) & 0x01;
+                if(pun_ptr[i % punPeriod] == 0){
+                    d_breg[pcnt/8] |= (tmpbit << (pcnt % 8));
+                    pcnt++;
+                    if( pcnt == d_ncbps){
+                        memcpy(&d_code[rewrite_cnt],d_breg,sizeof(char)*d_ncbps/8);
+                        rewrite_cnt+= (d_ncbps/8);
+                        std::memset(d_breg,0,36);
+                        pcnt =0;
                     }
                 }
             }
@@ -194,21 +223,28 @@ namespace gr {
             }else{
                 int_ptr = d_int288_2;
             }
-            std::memset(d_copy+PLCP_HEADER_BYTES,0,d_nout);
+            std::memset(d_breg,0,d_ncbps/8);
             unsigned char tmpbit;
             unsigned int intidx;
+            int icnt = 0, rewrite_cnt=0;
 
             for(int i=0;i<d_nout*8;++i){
-                tmpbit = (d_scramble[i/8] >> (i%8)) & 0x01;
-                intidx = (i/d_ncbps) *d_ncbps + int_ptr[ i % d_ncbps];
-                d_copy[PLCP_HEADER_BYTES + intidx/8] |= (tmpbit << (intidx % 8));
+                tmpbit = (d_code[i/8] >> (i%8)) & 0x01;
+                intidx = int_ptr[ i % d_ncbps];
+                d_breg[intidx/8] |= (tmpbit << (intidx % 8));
+                if( ((i+1) % d_ncbps) == 0 ){
+                    memcpy(&d_code[rewrite_cnt],d_breg,sizeof(char)*d_ncbps/8);
+                    std::memset(d_breg,0,d_ncbps/8);
+                    rewrite_cnt += (d_ncbps/8);
+                }
             }
         }
     	const pmt::pmt_t d_in_port;
     	const pmt::pmt_t d_out_port;
-    	unsigned char d_copy[8200];
+    	
     	unsigned char d_code[8200];
-    	unsigned char d_scramble[8200];
+    	unsigned char d_scramble[4100];
+        unsigned char d_breg[36];
     	unsigned char d_seed;
     	unsigned char d_scramble_reg;
     	int d_ncbps;
@@ -216,12 +252,13 @@ namespace gr {
     	int d_ndbps;
     	int d_nout;
     	int d_nbits;
+        int d_rate;
     };
 
     ppdu_builder::sptr 
-    ppdu_builder::make(int seed)
+    ppdu_builder::make(int seed,int rate)
     {
-    	return gnuradio::get_initial_sptr(new ppdu_builder_impl(seed));
+    	return gnuradio::get_initial_sptr(new ppdu_builder_impl(seed,rate));
     }
 
   } /* namespace wifi_ofdm */
