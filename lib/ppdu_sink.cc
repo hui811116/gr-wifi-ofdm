@@ -30,7 +30,7 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 0
+    #define d_debug 1
     #define dout d_debug && std::cout
   	static const unsigned char d_output_table[64][2]={
         {0,3},{2,1},{3,0},{1,2},{3,0},{1,2},{0,3},{2,1},{0,3},{2,1},
@@ -63,14 +63,24 @@ namespace gr {
     		// the message bytes are deinterleaved bytes
     		d_rate = pmt::to_long(k);
     		size_t io(0);
+        int tmp_seed;
     		const uint8_t* uvec = pmt::u8vector_elements(v,io);
     		// conv_dec
     		if(conv_dec(uvec,io)){
     			// finish decoding
     			// check service field and seed
-    			service_and_seed();
-    			// next step, descramble decoded bits
+    			seed_est();
+          tmp_seed = d_seed_est;
+          // next step, descramble decoded bits
     			descramble(io*4-2-6);
+          // get service bytes, the descrambled first two bytes in d_decode
+          d_rx_service[0] = d_decode[0];
+          d_rx_service[1] = d_decode[1];
+          dout<<"PPDU_SINK Received a Packet----DataRate [ "<<d_rate<<" Mbps ]"
+          <<", PPDU_LENGTH [ "<<io/2-3<<" Bytes ]"
+          <<", Estimated SEED [ "<<tmp_seed<<" ]"
+          <<", Service bytes(Msb-left)="<<std::hex<<(int)d_rx_service[1]<<","<<(int)d_rx_service[0]<<std::dec
+          <<std::endl;
     			// publish payload
     			pmt::pmt_t blob = pmt::make_blob(d_decode+2, io/2-3);
     			message_port_pub(d_out_port,pmt::cons(pmt::PMT_NIL,blob));
@@ -95,7 +105,7 @@ namespace gr {
           }
     		}
     	}
-    	void service_and_seed()
+    	void seed_est()
     	{
     		d_seed_est = 0x00;
     		d_seed_est |= (((d_decode[0]>>2)  ^ (d_decode[0]>>6)) & 0x01);
@@ -105,8 +115,6 @@ namespace gr {
     		d_seed_est |= ((((d_decode[0]>>1) ^ (d_decode[0]>>5) ^ (d_decode[0]>>2)) & 0x01) << 4);
     		d_seed_est |= ((((d_decode[0]>>0) ^ (d_decode[0]>>4) ^ (d_decode[0]>>1)) & 0x01) << 5);
     		d_seed_est |= ((((d_decode[0]>>2) ^ (d_decode[0]>>6) ^ (d_decode[0]>>3) ^ d_decode[0]) & 0x01) << 6);
-    		// service
-    		// d_decode[0], d_decode[1]
     	}
     	bool conv_dec(const uint8_t* uvec, size_t noutputs)
     	{
@@ -118,7 +126,6 @@ namespace gr {
     			d_cost[0][i] = UINT_MAX;
     			d_track[0][i] = 0;
     		}
-        //dout<<"nbit = "<<nbit<<std::endl;
     		unsigned char cur=0x00, nex0=0x00,nex1=0x01;
     		const uint8_t out_mask = 0x03;
     		unsigned char output = uvec[0] & out_mask;
@@ -145,8 +152,6 @@ namespace gr {
       				}
       			}
       			output = (uvec[ncnt*2/8] >> (2*ncnt % 8)) & out_mask;
-            //dout<<"iteration="<<ncnt<<std::endl;
-            //dout<<"costs:";
       			for(nex0=0;nex0<64;++nex0){
       				if( (ncnt> nbit-6) && (nex0 & 0x01) ){
                 d_cost[ncnt][nex0] = UINT_MAX;
@@ -161,9 +166,7 @@ namespace gr {
           			costCnt1 = (d_cost[ncnt%1024-1][nex1] == UINT_MAX)? UINT_MAX : d_cost[ncnt%1024-1][nex1] + (uint32_t)((tmpCmp1 & 0x01) + ((tmpCmp1>>1) & 0x01));
           			d_cost[ncnt][nex0] = (costCnt0<costCnt1)? costCnt0 : costCnt1;
           			d_track[ncnt][nex0] = (costCnt0<costCnt1)? cur : nex1;
-                //dout<<" "<<d_cost[ncnt][nex0];
       			}
-            //dout<<std::endl;
       			ncnt++;
       			if(ncnt%1024 == 0){
       				// truncated 
@@ -209,6 +212,7 @@ namespace gr {
     	unsigned char d_decode[4096];
     	unsigned int d_cost[1024][64];
     	unsigned char d_track[1024][64];
+      unsigned char d_rx_service[2];
     	uint8_t d_seed_est;
     };
 

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /* 
- * Copyright 2018 <+YOU OR YOUR COMPANY+>.
+ * Copyright 2018 Teng-Hui Huang.
  * 
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

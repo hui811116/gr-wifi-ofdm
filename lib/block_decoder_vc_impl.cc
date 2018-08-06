@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /* 
- * Copyright 2018 <+YOU OR YOUR COMPANY+>.
+ * Copyright 2018 Teng-Hui Huang.
  * 
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,13 +24,14 @@
 
 #include <gnuradio/io_signature.h>
 #include "block_decoder_vc_impl.h"
+#include <gnuradio/math.h>
 #include <climits>
 #include <cfloat>
 #include <cstring>
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 1
+    #define d_debug 0
     #define dout d_debug && std::cout
     static const int d_ndata = 48;
     static const pmt::pmt_t d_hdr_tag = pmt::intern("hdr");
@@ -47,6 +48,7 @@ namespace gr {
     // for depuncturing
     static const unsigned char d_pun23[12] = {0,0,0,1,0,0,0,1,0,0,0,1};
     static const unsigned char d_pun34[18] = {0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0};
+    static const float d_norms[2] = {sqrt(10.0),sqrt(42)};
 
     block_decoder_vc::sptr
     block_decoder_vc::make()
@@ -105,9 +107,9 @@ namespace gr {
       for(int i=0;i<48;++i){
         for(uint8_t j=0;j<4;++j){
           // FIXME: contellation point normalization constant required
-          i_tmp = std::real(in[i])-d_qam16_half[j];
+          i_tmp = std::real(d_norms[0]*in[i])-d_qam16_half[j];
           i_tmp *= i_tmp;
-          q_tmp = std::imag(in[i])-d_qam16_half[j];
+          q_tmp = std::imag(d_norms[0]*in[i])-d_qam16_half[j];
           q_tmp *= q_tmp;
           if(i_tmp<i_min){
             i_min = i_tmp; i_idx = j;
@@ -130,9 +132,9 @@ namespace gr {
       uint8_t i_idx = 0, q_idx = 0;
       for(int i=0;i<48;++i){
         for(uint8_t j=0;j<8;++j){
-          i_tmp = std::real(in[i])-d_qam64_half[j];
+          i_tmp = std::real(d_norms[1]*in[i])-d_qam64_half[j];
           i_tmp *= i_tmp;
-          q_tmp = std::imag(in[j])-d_qam64_half[j];
+          q_tmp = std::imag(d_norms[1]*in[j])-d_qam64_half[j];
           q_tmp *= q_tmp;
           if(i_tmp < i_min){
             i_min = i_tmp; i_idx = j;
@@ -221,9 +223,10 @@ namespace gr {
       }
       if(parity == 0x00){
         d_rate = d_hdr_reg[0] & 0x0f;
-        d_length = (d_hdr_reg[0] >> 5) & 0x07;
-        d_length |= (d_hdr_reg[1] << 3);
-        d_length |= (d_hdr_reg[2] & 0x01) << (11);
+        d_length = 0x0000;
+        for(int i=0;i<12;++i){
+          d_length = (d_length<<1) | ((d_hdr_reg[(16-i)/8] >> ((16-i)%8)) & 0x0001);
+        }
         d_ndbits = 16 + d_length * 8 + 6;
         switch(d_rate){
           case RATE6MBPS:
