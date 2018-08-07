@@ -30,8 +30,6 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 0
-    #define dout d_debug && std::cout
   	#define WIFI_SERVICE_BYTES 2
     // for puncturing
     static const unsigned char d_pun23[12] = {0,0,0,1,0,0,0,1,0,0,0,1};

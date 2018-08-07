@@ -165,11 +165,11 @@ namespace gr {
         uint8_t tmpbit = (tmp_reg2[idx/8] >> (idx%8)) & 0x01;
         d_hdr_debytes[i/8] |= (tmpbit << (i%8));
       }
-      for(int i=0;i<24;++i){
-        for(int j=0;j<64;++j)
-          d_hdr_cost[i][j] = UINT_MAX;
+      for(int j=0;j<64;++j){
+        d_hdr_cost[0][j] = UINT_MAX;
+        d_hdr_track[0][j] = 0;
       }
-
+      
       unsigned char cur=0x00, nex0=0x00,nex1=0x01;
       uint8_t out_mask = 0x03;
       unsigned char output = d_hdr_debytes[0] & out_mask;
@@ -222,6 +222,7 @@ namespace gr {
         parity ^= ((d_hdr_reg[i/8]>>(i%8)) & 0x01);
       }
       if(parity == 0x00){
+        dout<<"decoded hdr="<<std::hex<<(int)d_hdr_reg[0]<<","<<(int)d_hdr_reg[1]<<","<<(int)d_hdr_reg[2]<<std::dec<<std::endl;
         d_rate = d_hdr_reg[0] & 0x0f;
         d_length = 0x0000;
         for(int i=0;i<12;++i){

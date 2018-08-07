@@ -28,8 +28,6 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 0
-    #define dout d_debug && std::cout
     static const int d_nsub=52;
     static const int d_nfft=64;
     static const float d_fft_norm = 1.0f/(float)64;
@@ -163,8 +161,9 @@ namespace gr {
           bin++; // consume one bit
         }else if(d_subcarrier_type[nout]==-1){
           // insert one pilot before these subcarrier indices
-          out[ d_subcarrier_idx[nout] ] = d_fft_norm * d_pilot_sign[d_psign_cnt] * d_pilot[d_psym_cnt++];
+          out[ d_subcarrier_idx[nout] ] = d_fft_norm * d_pilot_sign[d_psign_cnt] * d_pilot[d_psym_cnt];
           // add counter for next pilot symbol
+          d_psym_cnt++;
         }else{
           out[ d_subcarrier_idx[nout] ] = gr_complex(0,0);
         }
@@ -185,16 +184,13 @@ namespace gr {
           out[ nout/d_nfft*d_nfft + d_subcarrier_idx[nout%d_nfft]] = d_fft_norm * d_pilot_sign[d_psign_cnt % 127] * d_pilot[d_psym_cnt++];
           if(d_psym_cnt==4){
             d_psym_cnt = 0;
-            d_psign_cnt = (d_psign_cnt==127)? 0 : d_psign_cnt+1;
+            d_psign_cnt = (d_psign_cnt+1)%127;
           }
         }else{
           out[nout/d_nfft*d_nfft + d_subcarrier_idx[nout%d_nfft]] = gr_complex(0,0);
         }
         nout++;
       }
-      // add a tag to notify total number of ofdm symbols.
-      add_item_tag(0,nitems_written(0),pmt::intern("total_symbols"),pmt::from_long(noutput_items),d_blockname);
-      // Tell runtime system how many output items we produced.
       return noutput_items;
     }
 

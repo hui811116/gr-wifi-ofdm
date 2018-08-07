@@ -113,10 +113,10 @@ namespace gr {
             // change state
             d_state =1;
             d_symbol_cnt =0;
-            add_item_tag(0,nitems_written(0),pmt::intern("long_pre"),pmt::PMT_T,d_bname);
-            add_item_tag(0,nitems_written(0),pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
+            add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("long_pre"),pmt::PMT_T,d_bname);
+            add_item_tag(0,nitems_written(0)+nout/d_nfft,pmt::intern("symbol_idx"),pmt::from_long(d_symbol_cnt++),d_bname);
             // FIXME: find a more stable way to fine tune CFO
-            volk_32fc_s32fc_x2_rotator_32fc(out,&in[ncon],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
+            volk_32fc_s32fc_x2_rotator_32fc(&out[nout],&in[ncon],gr_expj(-fine_cfo),&d_dumPhase,d_nfft);
             //std::memcpy(out,&in[ncon],sizeof(gr_complex)*d_nfft);
             nout += d_nfft;
             ncon += d_nfft*2;

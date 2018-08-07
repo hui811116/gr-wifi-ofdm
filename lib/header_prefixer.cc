@@ -29,8 +29,6 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 0
-    #define dout d_debug && std::cout
     #define WIFI80211A_HEADER_BYTES 6
   	static const unsigned char d_rateSet[8]= {
   		0x0B, 0x0F, 0x0A, 0x0E, 0x09, 0x0D, 0x08, 0x0C
@@ -125,7 +123,7 @@ namespace gr {
     	{
     		uint8_t enc_reg = 0x00, tmp_lsb = 0x00;
     		uint8_t tmp_bit[2];
-    		std::memset(d_enc, 0, sizeof d_enc);
+    		std::memset(d_enc, 0, 8);
     		for(int i=0;i < WIFI80211A_HEADER_BYTES*8/2 ;++i){
     			tmp_lsb = (uvec[i/8] >> (i%8)) & 0x01;
     			tmp_bit[0] = (((tmp_lsb) ^ (enc_reg >> 1) ^ (enc_reg >> 2)
@@ -133,13 +131,13 @@ namespace gr {
     			tmp_bit[1] = (((tmp_lsb) ^ enc_reg ^ (enc_reg >> 1) ^ (enc_reg >> 2)
     						 ^ (enc_reg >> 5)) & 0x01); // second output
                 d_enc[i/4] |= (tmp_bit[0]<< ( (2*i)  % 8));
-                d_enc[i/4] |= tmp_bit[1]<< ((2*i+1) % 8);
+                d_enc[i/4] |= (tmp_bit[1]<< ((2*i+1) % 8));
                 enc_reg = ((enc_reg<<1) | tmp_lsb) & 0x3f;
     		}
     	}
     	void interleaver()
     	{
-            std::memset(d_out, 0, sizeof d_out);
+            std::memset(d_out, 0, 8);
             for(int i=0;i<WIFI80211A_HEADER_BYTES*8;++i){
                 int newPos = d_inter[i];
                 d_out[newPos/8] |= (  ((d_enc[i/8] >> (i%8)) & 0x01) << (newPos%8) );

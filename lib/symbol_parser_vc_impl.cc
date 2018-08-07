@@ -26,9 +26,18 @@
 #include "symbol_parser_vc_impl.h"
 #include <volk/volk.h>
 #include <gnuradio/expj.h>
+#include <gnuradio/math.h>
 
 namespace gr {
   namespace wifi_ofdm {
+    #define TWO_PI M_PI * 2.0f
+    inline float phase_wrap(float phase){
+      while(phase>= TWO_PI)
+        phase -= TWO_PI;
+      while(phase<= -TWO_PI)
+        phase += TWO_PI;
+      return phase;
+    }
     static const int d_nfft = 64;
     static const int d_ndata = 48;
     static const pmt::pmt_t d_preTag = pmt::intern("long_pre");
@@ -77,11 +86,13 @@ namespace gr {
       scalar+= d_buf[25]*d_pilot[1];
       scalar+= d_buf[39]*d_pilot[2];
       scalar+= d_buf[53]*d_pilot[3];
-      float carrier_phase = (d_pilot_sign[pilot_idx]==1)? std::arg(scalar) : -std::arg(scalar);
-      // FIXME:estimate attennuation
-      for(int i=0;i<d_ndata;++i){
-        if(d_subcarrier_type[i]==1)
+      float carrier_phase = (d_pilot_sign[pilot_idx]==1)? std::arg(scalar) : std::arg(scalar)+M_PI;
+      carrier_phase = phase_wrap(carrier_phase);
+      // FIXME:estimate attennuation?
+      for(int i=0;i<d_nfft;++i){
+        if(d_subcarrier_type[i]==1){
           out[nout++] = gr_expj(-carrier_phase) * d_buf[i];
+        }
       }
     }    
 
@@ -103,6 +114,7 @@ namespace gr {
           mmse_tmp[i] = std::conj(d_long[d_desubcarr_idx[i]]) * in[i];
         }
       }
+      
       noise_pwr_est/=gr_complex(12.0,0);
       // mmse normalization
       for(int i=0;i<d_nfft;++i){
@@ -138,28 +150,20 @@ namespace gr {
       std::vector<tag_t> tags;
       get_tags_in_range(tags,0,nitems_read(0),nitems_read(0)+nin,d_preTag);
       if(!tags.empty()){
-        uint64_t offset = tags[0].offset;
-        if(offset == nitems_read(0)){
+        if(tags[0].offset == nitems_read(0)){
           // found a long preamble
           channel_estimation(&in[0]);
           d_pilot_idx = 0;
-          add_item_tag(0,nitems_written(0),pmt::intern("hdr"),pmt::PMT_T,d_bname);
+          add_item_tag(0,nitems_written(0)+nout/d_ndata,pmt::intern("hdr"),pmt::PMT_T,d_bname);
           ncon++;
         }else{
-          // 
+          // truncate to the end of current ofdm symbol
           nin = (int)(tags[0].offset - nitems_read(0));
         }
       }
       for(;ncon<nin;++ncon){
-        // 1. Feq
-        // 2. pilot 
         // channel gain & carrier phase
         symbol_eq(&out[nout],&in[ncon*d_nfft],d_pilot_idx);
-        // FIXME: find a stable way to fine tune CFO
-        /*
-        for(int j=0;j<d_ndata;++j)
-          out[d_ndata*ncon+j] = in[ncon*d_nfft+d_datacarr_idx[j]];
-        */
         add_item_tag(0,nitems_written(0)+nout/d_ndata,pmt::intern("symbol_idx"),pmt::from_long(d_pilot_idx),d_bname);
         d_pilot_idx++;
         d_pilot_idx %= 127;

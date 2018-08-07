@@ -27,8 +27,6 @@
 
 namespace gr {
   namespace wifi_ofdm {
-    #define d_debug 0
-    #define dout d_debug && std::cout
     static const int d_nfft = 64;
     static const int d_ncp = 16;
     static const int d_pulse_append = 16;
@@ -91,8 +89,8 @@ namespace gr {
         nout+= SAMPLES_PER_SYMBOL;
       }
       // manual appends additional samples for pushing out remainder samples in pulse shaping function?
-      out[nout] += smooth_scalar * in[ninput_items[0]*d_nfft-d_ncp];
-      memcpy(&out[nout+1], &in[(ninput_items[0])*d_nfft-d_ncp+1],sizeof(gr_complex)*(d_ncp-1));
+      out[nout] += smooth_scalar * in[ninput_items[0]*d_nfft-d_pulse_append];
+      memcpy(&out[nout+1], &in[(ninput_items[0])*d_nfft-d_pulse_append+1],sizeof(gr_complex)*(d_pulse_append-1));
       nout += d_pulse_append;
       // Tell runtime system how many output items we produced.
       return nout;
