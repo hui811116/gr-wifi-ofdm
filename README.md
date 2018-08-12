@@ -1,6 +1,10 @@
 # wifi-ofdm
 A Software-Defined Radio implementation of IEEE 802.11a phisical layer on Gnuradio
 
+# Demo
+
+[![gr-wifi-ofdm demo video](http://img.youtube.com/vi/wYjP9WzbRcw/0.jpg)](http://www.youtube.com/watch?v=wYjP9WzbRcw)
+
 # Installation
 
 - prerequisite:
