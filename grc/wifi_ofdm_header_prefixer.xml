@@ -4,51 +4,7 @@
   <key>wifi_ofdm_header_prefixer</key>
   <category>[wifi_ofdm]</category>
   <import>import wifi_ofdm</import>
-  <make>wifi_ofdm.header_prefixer($rate)</make>
-  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
-       Sub-nodes:
-       * name
-       * key (makes the value accessible as $keyname, e.g. in the make node)
-       * type -->
-  <param>
-    <name>Data rate</name>
-    <key>rate</key>
-    <value>0</value>
-    <type>int</type>
-    <option>
-      <name>6Mbps</name>
-      <key>0</key>
-    </option>
-    <option>
-      <name>9Mbps</name>
-      <key>1</key>
-    </option>
-    <option>
-      <name>12Mbps</name>
-      <key>2</key>
-    </option>
-    <option>
-      <name>18Mbps</name>
-      <key>3</key>
-    </option>
-    <option>
-      <name>24Mbps</name>
-      <key>4</key>
-    </option>
-    <option>
-      <name>36Mbps</name>
-      <key>5</key>
-    </option>
-    <option>
-      <name>48Mbps</name>
-      <key>6</key>
-    </option>
-    <option>
-      <name>54Mbps</name>
-      <key>7</key>
-    </option>
-  </param>
-
+  <make>wifi_ofdm.header_prefixer()</make>
   <!-- Make one 'sink' node per input. Sub-nodes:
        * name (an identifier for the GUI)
        * type

@@ -36,7 +36,7 @@ namespace gr {
     {
     public:
       typedef boost::shared_ptr<header_prefixer> sptr;
-      static sptr make(int rate);
+      static sptr make();
     };
 
   } // namespace wifi_ofdm

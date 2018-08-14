@@ -46,7 +46,7 @@ namespace gr {
        * class. wifi_ofdm::symbol_mapper_bvc::make is the public interface for
        * creating new instances.
        */
-      static sptr make(int rate, const std::string& tagname);
+      static sptr make(const std::string& tagname);
     };
 
   } // namespace wifi_ofdm

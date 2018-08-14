@@ -39,7 +39,7 @@ namespace gr {
     class header_prefixer_impl : public header_prefixer
     {
     public:
-    	header_prefixer_impl(int rate): block("header_prefixer",
+    	header_prefixer_impl(): block("header_prefixer",
     		gr::io_signature::make(0,0,0),
     		gr::io_signature::make(0,0,0)),
     		d_in_port(pmt::mp("psdu_in")),
@@ -48,38 +48,6 @@ namespace gr {
     		message_port_register_in(d_in_port);
     		message_port_register_out(d_out_port);
     		set_msg_handler(d_in_port,boost::bind(&header_prefixer_impl::msg_in,this,_1));
-    		// check rate
-    		switch(rate)
-    		{
-    			case 0://6Mbps
-                    d_rate_k = pmt::intern("6Mbps");
-    			break;
-    			case 1://9Mbps
-                    d_rate_k = pmt::intern("9Mbps");
-    			break;
-    			case 2://12Mbps
-                    d_rate_k = pmt::intern("12Mbps");
-    			break;
-    			case 3://18Mbps
-                    d_rate_k = pmt::intern("18Mbps");
-    			break;
-    			case 4://24Mbps
-                    d_rate_k = pmt::intern("24Mbps");
-    			break;
-    			case 5://36Mbps
-                    d_rate_k = pmt::intern("36Mbps");
-    			break;
-    			case 6://48Mbps
-                    d_rate_k = pmt::intern("48Mbps");
-    			break;
-    			case 7://54Mbps
-                    d_rate_k = pmt::intern("54Mbps");
-    			break;
-    			default:
-    				throw std::invalid_argument("Undefined data rate, aborted");
-    			break;
-    		}
-    		d_rate = rate;
     	}
     	~header_prefixer_impl(){}
 
@@ -89,7 +57,8 @@ namespace gr {
     		pmt::pmt_t v = pmt::cdr(msg);
     		size_t io(0);
     		const uint8_t* uvec = pmt::u8vector_elements(v,io);
-            int datalen = pmt::to_long(k);
+            int datalen = pmt::to_long(k) % 8192; // NOTE: hidden tag, length part, see ppdu_builder
+            d_rate = pmt::to_long(k) / 8192; // NOTE: hidden tag, rate part, see ppdu_builder
 
     		d_u16len = (uint16_t) datalen;
     		d_u8ptr = (uint8_t*) & d_u16len;
@@ -113,7 +82,9 @@ namespace gr {
     		interleaver();
             // d_out contains the produced header, 6 bytes
             std::memcpy(d_copy+WIFI80211A_HEADER_BYTES, uvec, sizeof(char) * io);
-            pmt::pmt_t blob = pmt::make_blob(d_copy,io+WIFI80211A_HEADER_BYTES);
+            // NOTE: hide the rate tag to the last byte
+            d_copy[io+WIFI80211A_HEADER_BYTES] = d_rateSet[d_rate];
+            pmt::pmt_t blob = pmt::make_blob(d_copy,io+WIFI80211A_HEADER_BYTES+1); // hidden tag
             message_port_pub(d_out_port,pmt::cons(pmt::PMT_NIL,blob));
     	}
 
@@ -157,9 +128,9 @@ namespace gr {
     };
 
     header_prefixer::sptr
-    header_prefixer::make(int rate)
+    header_prefixer::make()
     {
-    	return gnuradio::get_initial_sptr(new header_prefixer_impl(rate));
+    	return gnuradio::get_initial_sptr(new header_prefixer_impl());
     }
 
   } /* namespace wifi_ofdm */

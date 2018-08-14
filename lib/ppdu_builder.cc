@@ -52,6 +52,25 @@ namespace gr {
     		message_port_register_in(d_in_port);
     		set_msg_handler(d_in_port,boost::bind(&ppdu_builder_impl::msg_in,this,_1));
     		d_seed = (unsigned char)seed;
+            update_rate(rate);
+    	}
+    	~ppdu_builder_impl(){}
+    	void msg_in(pmt::pmt_t msg)
+    	{
+    		pmt::pmt_t k = pmt::car(msg);
+    		pmt::pmt_t v = pmt::cdr(msg);
+    		size_t io(0);
+    		const uint8_t* uvec = pmt::u8vector_elements(v,io);
+    		// assert(io>6)
+    		build_data(uvec,io);
+            pmt::pmt_t blob = pmt::make_blob(d_code,d_nout);
+            // NOTE: the added tag contains io(length of ppdu) and also carrys rateTag
+            //       since maximum ppdu length is 4096, 8192 is a save distance from it. 
+            message_port_pub(d_out_port,pmt::cons(pmt::from_long(io + d_rate * 8192),blob));
+    	}
+        void update_rate(int rate)
+        {
+            gr::thread::scoped_lock guard(d_mutex);
             switch(rate){
                 case 0:
                     d_nbpsc = 1;
@@ -88,31 +107,25 @@ namespace gr {
                     d_ncbps = 288;
                     d_ndbps = 192;
                 break;
-
                 case 7:
                     d_nbpsc = 6;
                     d_ncbps = 288;
                     d_ndbps = 216;
                 break;
-
                 default:
-                    throw std::invalid_argument("Undefined Data rate, abort");
+                    // using default rate 6MBPS
+                    d_nbpsc = 1;
+                    d_ncbps = 48;
+                    d_ndbps = 24;
+                    //throw std::invalid_argument("Undefined Data rate, abort");
                 break;
             }
             d_rate = rate;
-    	}
-    	~ppdu_builder_impl(){}
-    	void msg_in(pmt::pmt_t msg)
-    	{
-    		pmt::pmt_t k = pmt::car(msg);
-    		pmt::pmt_t v = pmt::cdr(msg);
-    		size_t io(0);
-    		const uint8_t* uvec = pmt::u8vector_elements(v,io);
-    		// assert(io>6)
-    		build_data(uvec,io);
-            pmt::pmt_t blob = pmt::make_blob(d_code,d_nout);
-            message_port_pub(d_out_port,pmt::cons(pmt::from_long(io),blob));
-    	}
+        }
+        int get_rate() const
+        {
+            return d_rate;
+        }
     private:
     	void build_data(const uint8_t* uvec, size_t nbyte){
     		// nbyte: number of uncoded ppdu bytes
@@ -250,6 +263,7 @@ namespace gr {
     	int d_nout;
     	int d_nbits;
         int d_rate;
+        gr::thread::mutex d_mutex;
     };
 
     ppdu_builder::sptr 

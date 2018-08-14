@@ -62,6 +62,8 @@ namespace gr {
     class symbol_mapper_bvc_impl : public symbol_mapper_bvc
     {
      private:
+      void configureRate(int rate);
+      int mapRate(unsigned char raw) const;
       int d_rate;
       float d_norm;
       int d_psign_cnt;
@@ -76,7 +78,7 @@ namespace gr {
       int calculate_output_stream_length(const gr_vector_int &ninput_items);
 
      public:
-      symbol_mapper_bvc_impl(int rate, const std::string& tagname);
+      symbol_mapper_bvc_impl(const std::string& tagname);
       ~symbol_mapper_bvc_impl();
 
       // Where all the action really happens
