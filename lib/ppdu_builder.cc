@@ -65,7 +65,27 @@ namespace gr {
     		build_data(uvec,io);
             pmt::pmt_t blob = pmt::make_blob(d_code,d_nout);
             // NOTE: the added tag contains io(length of ppdu) and also carrys rateTag
-            //       since maximum ppdu length is 4096, 8192 is a save distance from it. 
+            //       since maximum ppdu length is 4096, 8192 is a safe distance from it.
+            /*
+            for(int i=0;i<d_nout;++i){
+                int breg = 0;
+                int q16 = 0;
+                for(int j=0;j<8;++j){
+                    breg = (d_code[i]>>j) & 0x01;
+                    q16 |= (breg << (j%4));
+                    if((j+1)%4 == 0){
+                        int realtmp = (q16 & 0x03);
+                        int imagtmp = ( (q16>>2) & 0x03);
+                        std::cout<<"("<<realtmp<<","<<imagtmp<<") ";
+                        q16 = 0;
+                    }
+                }
+                if((i+1) % 5  == 0){
+                    std::cout<<std::endl;
+                }
+            }
+            std::cout<<std::endl;
+            */
             message_port_pub(d_out_port,pmt::cons(pmt::from_long(io + d_rate * 8192),blob));
     	}
         void update_rate(int rate)

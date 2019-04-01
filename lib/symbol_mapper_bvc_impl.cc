@@ -149,40 +149,7 @@ namespace gr {
     int
     symbol_mapper_bvc_impl::calculate_output_stream_length(const gr_vector_int &ninput_items)
     {
-      /*
-      int noutput_items;
-      switch(d_rate){
-        case 0:
-          noutput_items = 1 + (ninput_items[0]-7)/6;
-        break;
-        case 1:
-          noutput_items = 1 + (ninput_items[0]-7)/6;
-        break;
-        case 2:
-          noutput_items = 1 + (ninput_items[0]-7)/12;
-        break;
-        case 3:
-          noutput_items = 1 + (ninput_items[0]-7)/12;
-        break;
-        case 4:
-          noutput_items = 1 + (ninput_items[0]-7)/24;
-        break;
-        case 5:
-          noutput_items = 1 + (ninput_items[0]-7)/24;
-        break;
-        case 6:
-          noutput_items = 1 + (ninput_items[0]-7)/48;
-        break;
-        case 7:
-          noutput_items = 1 + (ninput_items[0]-7)/48;
-        break;
-        default:
-          // default assume 6Mbps
-          noutput_items = 1 + (ninput_items[0]-7)/6;
-          //throw std::runtime_error("Undefined data rate, abort");
-        break;
-      }*/
-      int noutput_items = 1 + (ninput_items[0]-7)/6; // assume maximum size, 6Mbps
+      int noutput_items = 1 + ninput_items[0]/6; // assume maximum size, 6Mbps
       return noutput_items ;
     }
 
@@ -196,8 +163,8 @@ namespace gr {
       gr_complex *out = (gr_complex *) output_items[0];
       // first 6 bytes represents the header, use 6Mbps rate for that part
       // NOTE: last byte is hidden rate tag, see ppdu_builder
-      noutput_items = 1 + (ninput_items[0]*8-56)/d_bits_per_point/48;
       configureRate(mapRate(in[ninput_items[0]-1]));
+      noutput_items = 1+ 1 + (ninput_items[0]*8-56)/d_bits_per_point/48; // 1 for extra appended symbol to reset filter
       int bin=0, nout=0;
       d_psign_cnt=0;
       d_psym_cnt=0;
@@ -226,8 +193,11 @@ namespace gr {
             d_breg |= ( ( (in[bin/8] >> (bin%8)) & 0x01) << biter );
             bin++;
           }
+          // data mapping
           out[nout/d_nfft*d_nfft + d_subcarrier_idx[nout%d_nfft]] = d_norm * d_mod_ptr[d_breg];
+          //std::cout<<"2("<<std::real(d_mod_ptr[d_breg])<<","<<std::imag(d_mod_ptr[d_breg])<<")"<<std::endl;
         }else if(d_subcarrier_type[nout%d_nfft]==-1){
+          // pseudo random pilot symbols
           out[ nout/d_nfft*d_nfft + d_subcarrier_idx[nout%d_nfft]] = d_fft_norm * d_pilot_sign[d_psign_cnt % 127] * d_pilot[d_psym_cnt++];
           if(d_psym_cnt==4){
             d_psym_cnt = 0;

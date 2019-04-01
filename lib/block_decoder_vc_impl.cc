@@ -105,6 +105,7 @@ namespace gr {
       float i_min = FLT_MAX, q_min = FLT_MAX, i_tmp,q_tmp;
       uint8_t i_idx = 0, q_idx = 0;
       for(int i=0;i<48;++i){
+        //std::cout<<"1("<<std::real(in[i])<<","<<std::imag(in[i])<<")"<<std::endl;
         for(uint8_t j=0;j<4;++j){
           // FIXME: contellation point normalization constant required
           i_tmp = std::real(d_norms[0]*in[i])-d_qam16_half[j];
@@ -120,7 +121,7 @@ namespace gr {
         }
         // insert four bits
         out[d_ncbits_cnt/8] |= (i_idx << (d_ncbits_cnt%8));
-        out[(d_ncbits_cnt+2)/8] |= (q_idx<< ( (d_ncbits_cnt+2) %8));
+        out[d_ncbits_cnt/8] |= (q_idx << ( (d_ncbits_cnt%8) + 2));
         d_ncbits_cnt += 4;
       }
     }
@@ -134,7 +135,7 @@ namespace gr {
         for(uint8_t j=0;j<8;++j){
           i_tmp = std::real(d_norms[1]*in[i])-d_qam64_half[j];
           i_tmp *= i_tmp;
-          q_tmp = std::imag(d_norms[1]*in[j])-d_qam64_half[j];
+          q_tmp = std::imag(d_norms[1]*in[i])-d_qam64_half[j];
           q_tmp *= q_tmp;
           if(i_tmp < i_min){
             i_min = i_tmp; i_idx = j;
@@ -335,7 +336,7 @@ namespace gr {
         memcpy(&d_coded_buf[offset],d_deint_buf,sizeof(char)*(d_ncbps/8));
       }
       // puncturing
-      if(d_rate == RATE6MBPS || d_rate == RATE12MBPS || d_rate == RATE36MBPS){
+      if(d_rate == RATE6MBPS || d_rate == RATE12MBPS || d_rate == RATE24MBPS){
         // rate 1/2, do nothing
         blob = pmt::make_blob(d_coded_buf,2*d_length+6); // service=4 bytes, 6 padded zeros= 1.5 bytes
       }else{
