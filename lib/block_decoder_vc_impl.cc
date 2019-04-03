@@ -338,21 +338,18 @@ namespace gr {
       // puncturing
       if(d_rate == RATE6MBPS || d_rate == RATE12MBPS || d_rate == RATE24MBPS){
         // rate 1/2, do nothing
-        blob = pmt::make_blob(d_coded_buf,2*d_length+6); // service=4 bytes, 6 padded zeros= 1.5 bytes
+        blob = pmt::make_blob(d_coded_buf,2*d_length+6); // service=4 bytes, 6 padded zeros(mes bit)= 1.5 bytes (coded bits)
       }else{
         std::memset(d_depun_buf,0,nbytes);
         int punsize = (d_rate == RATE48MBPS)? 12 : 18;
         while(nout<d_ndbits){
-          if(d_depun_ptr[ ncon % punsize] == 1){
-            uint8_t rndbit = (dist(gen))? 0x01 : 0x00;
-            d_depun_buf[nout/8] |= (rndbit << (nout%8));
-          }else{
+          if(d_depun_ptr[ nout % punsize] != 1){
             d_depun_buf[nout/8] |= ( ((d_coded_buf[ncon/8] >> (ncon%8)) & 0x01 ) << (nout%8));
+            ncon++;
           }
-          ncon++;
           nout++;
         }
-        blob = pmt::make_blob(d_coded_buf,2*d_length+6);
+        blob = pmt::make_blob(d_depun_buf,2*d_length+6);
       }
       message_port_pub(d_out_port,pmt::cons(d_rate_key,blob));
     }
