@@ -7,6 +7,8 @@ If you are using an earlier version (Gnuradio < 3.7), you can checkout to the `l
 git checkout legacy
 ```
 
+**Warning:** Since I no longer have access to USRP hardware, only the software parts are tested. Please use caution when applying the 3.10 version to actual USRP hardware.
+
 # Demo
 
 [![gr-wifi-ofdm demo video](http://img.youtube.com/vi/wYjP9WzbRcw/0.jpg)](http://www.youtube.com/watch?v=wYjP9WzbRcw)
@@ -23,7 +25,7 @@ git checkout legacy
     Please refer to the [GNU Radio Installation Guide](https://wiki.gnuradio.org/index.php/InstallingGR).
     Radioconda is recommended as this is where the project is developed.
 
-- install gr-wifi-ofdm:
+- install this repository:
 ```
 cd gr-wifi-ofdm/
 mkdir build
@@ -37,9 +39,6 @@ sudo make install
 
 `cd examples` and run the scripts in the folder. 
 
-# Examples
-- 'wifi_ofdm_usrp_tx.grc': Transmitter script. Requires one USRP connected to your computer.
-- 'wifi_ofdm_usrp_rx.grc': Receiver script. Also requires one USRP connected.
 
 # Supported Rates
 The prototype supports the following data rates:
@@ -53,5 +52,5 @@ The prototype supports the following data rates:
 - 54 Mbps
 
 # Notes
-For convenience, the current version of the prototype uses hard-decision decoding in the convolutional-codes decoder 
-and may therefore suffer from several dB bit-error-rate (BER) loss in low signal-to-noise ratio (SNR) regime.
+For convenience, the current version of the prototype use hard-decision decoding in the convolutional-codes decoder 
+and may therefore suffers from several dB bit-error-rate (BER) loss in low signal-to-noise ratio (SNR) regime.
