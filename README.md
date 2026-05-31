@@ -16,13 +16,11 @@ git checkout legacy
 # Installation
 
 - prerequisite:
-
-    gr-gadget
-    Gnuradio 3.10
-    Volk (3.1.2 is tested)
+    - Gnuradio 3.10
+    - Volk (==3.1.2)
 
 - install Gnuradio 3.10
-    Please refer to the [GNU Radio Installation Guide](https://wiki.gnuradio.org/index.php/InstallingGR).
+    - Please refer to the [GNU Radio Installation Guide](https://wiki.gnuradio.org/index.php/InstallingGR).
     Radioconda is recommended as this is where the project is developed.
 
 - install this repository:
