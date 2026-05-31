@@ -32,6 +32,7 @@ namespace gr {
   namespace wifi_ofdm {
     #define d_debug 1
     #define dout d_debug && std::cout
+    #define FEC_WRAP 1296
   	static const unsigned char d_output_table[64][2]={
         {0,3},{2,1},{3,0},{1,2},{3,0},{1,2},{0,3},{2,1},{0,3},{2,1},
         {3,0},{1,2},{3,0},{1,2},{0,3},{2,1},{1,2},{3,0},{2,1},{0,3},
@@ -41,9 +42,21 @@ namespace gr {
         {1,2},{3,0},{1,2},{3,0},{2,1},{0,3},{2,1},{0,3},{1,2},{3,0},
         {1,2},{3,0},{2,1},{0,3}
     };
-
+    static const unsigned char d_pun34[18] = {0x01,0x01,0x01,0x00,0x00,0x01,0x01,0x01,0x01,0x00,0x00,0x01,0x01,0x01,0x01,0x00,0x00,0x01};
+    static const unsigned char d_pun23[12] = {0x01,0x01,0x01,0x00,0x01,0x01,0x01,0x00,0x01,0x01,0x01,0x00};
+    static const unsigned char d_punnon[2] = {0x01,0x01};
     class ppdu_sink_impl : public ppdu_sink
     {
+      enum RATESET{
+      RATE6MBPS=6,
+      RATE9MBPS=9,
+      RATE12MBPS=12,
+      RATE18MBPS=18,
+      RATE24MBPS=24,
+      RATE36MBPS=36,
+      RATE48MBPS=48,
+      RATE54MBPS=54
+    };
     public:
     	ppdu_sink_impl():block("ppdu_sink",
     		gr::io_signature::make(0,0,0),
@@ -62,6 +75,18 @@ namespace gr {
     		pmt::pmt_t v = pmt::cdr(msg);
     		// the message bytes are deinterleaved bytes
     		d_rate = pmt::to_long(k);
+        if(d_rate == RATE48MBPS){
+          // rate 2/3
+          d_punPtr = d_pun23;
+          d_pun_mod = 12;
+        }else if (d_rate == RATE6MBPS || d_rate == RATE12MBPS || d_rate == RATE24MBPS){
+          // rate 1/2
+          d_punPtr = d_punnon;
+          d_pun_mod = 2;
+        }else{
+          d_punPtr = d_pun34;
+          d_pun_mod = 18;
+        }
     		size_t io(0);
         int tmp_seed;
     		const uint8_t* uvec = pmt::u8vector_elements(v,io);
@@ -133,13 +158,13 @@ namespace gr {
       	unsigned char tmpCmp1 = output ^ d_output_table[cur][1];
       	uint32_t costCnt0 = 0, costCnt1 =0;
       	while(ncnt<nbit){
-      			if(ncnt%1024 ==0){
+      			if(ncnt%FEC_WRAP ==0){
       				// initialization and update
       				output = (uvec[ncnt*2/8] >> (2*ncnt % 8)) & out_mask;
       				tmpCmp0 = output ^ d_output_table[cur][0];
       				tmpCmp1 = output ^ d_output_table[cur][1];
-      				costCnt0 = (int) (tmpCmp0 & 0x01) + ((tmpCmp0>>1) & 0x01);
-      				costCnt1 = (int) (tmpCmp1 & 0x01) + ((tmpCmp1>>1) & 0x01);
+      				costCnt0 = (int) (tmpCmp0 & d_punPtr[(2*ncnt)%d_pun_mod]) + ((tmpCmp0>>1) & d_punPtr[(2*ncnt+1)%d_pun_mod]);
+      				costCnt1 = (int) (tmpCmp1 & d_punPtr[(2*ncnt)%d_pun_mod]) + ((tmpCmp1>>1) & d_punPtr[(2*ncnt+1)%d_pun_mod]);
       				nex0 = cur<<1;
       				nex1 = (cur<<1) | 0x01;
       				d_cost[0][nex0] = costCnt0;
@@ -159,22 +184,31 @@ namespace gr {
               }
       				cur = (nex0 >> 1);
       				tmpCmp0 = output ^ d_output_table[cur][nex0 & 0x01];
-      				costCnt0 = (d_cost[ncnt%1024-1][cur] == UINT_MAX)? UINT_MAX : d_cost[ncnt%1024-1][cur] + (uint32_t)((tmpCmp0 & 0x01) + ((tmpCmp0>>1) & 0x01));             
+      				costCnt0 = (d_cost[ncnt%FEC_WRAP-1][cur] == UINT_MAX)? 
+                      UINT_MAX : d_cost[ncnt%FEC_WRAP-1][cur] 
+                                    + (uint32_t)( (tmpCmp0 & d_punPtr[(2*ncnt)%d_pun_mod]) 
+                                    +             ((tmpCmp0>>1) & d_punPtr[(2*ncnt+1)%d_pun_mod])
+                                                );             
           			// second case, 1
-          			nex1 = (nex0>>1) | 0x20;
-          			tmpCmp1 = output ^ d_output_table[nex1][nex0 & 0x01];
-          			costCnt1 = (d_cost[ncnt%1024-1][nex1] == UINT_MAX)? UINT_MAX : d_cost[ncnt%1024-1][nex1] + (uint32_t)((tmpCmp1 & 0x01) + ((tmpCmp1>>1) & 0x01));
-          			d_cost[ncnt][nex0] = (costCnt0<costCnt1)? costCnt0 : costCnt1;
-          			d_track[ncnt][nex0] = (costCnt0<costCnt1)? cur : nex1;
+          		nex1 = (nex0>>1) | 0x20;
+          		tmpCmp1 = output ^ d_output_table[nex1][nex0 & 0x01];
+          		costCnt1 = (d_cost[ncnt%FEC_WRAP-1][nex1] == UINT_MAX)? 
+                     UINT_MAX : d_cost[ncnt%FEC_WRAP-1][nex1] 
+                                 + (uint32_t)(
+                                               (tmpCmp1 & d_punPtr[(2*ncnt)%d_pun_mod]) 
+                                               + ((tmpCmp1>>1)  & d_punPtr[(2*ncnt+1)%d_pun_mod])
+                                             );
+          		d_cost[ncnt][nex0] = (costCnt0<costCnt1)? costCnt0 : costCnt1;
+          		d_track[ncnt][nex0] = (costCnt0<costCnt1)? cur : nex1;
       			}
       			ncnt++;
-      			if(ncnt%1024 == 0){
+      			if(ncnt%FEC_WRAP == 0){
       				// truncated 
-      				uint32_t minCost = d_cost[1023][0];
+      				uint32_t minCost = d_cost[FEC_WRAP-1][0];
       				uint8_t minIdx = 0;
       				for(int i=1;i<64;++i){
-      					if(d_cost[1023][i]<minCost){
-      						minCost = d_cost[1023][i];
+      					if(d_cost[FEC_WRAP-1][i]<minCost){
+      						minCost = d_cost[FEC_WRAP-1][i];
       						minIdx = i;
       					}
       				}
@@ -182,37 +216,39 @@ namespace gr {
       					return false;
       				// back tracking
       				cur = minIdx;
-      				for(int i=1;i<1024;++i){
-      					nex0 = d_track[1024-i][cur];
-      					d_decode[(nwrite+1024-i)/8] |= ((cur&0x01) <<(nwrite+1024-i)%8);
+      				for(int i=1;i<FEC_WRAP;++i){
+      					nex0 = d_track[FEC_WRAP-i][cur];
+      					d_decode[(nwrite+FEC_WRAP-i)/8] |= ((cur&0x01) <<(nwrite+FEC_WRAP-i)%8);
       					cur = nex0;
       				}
       				// last one
       				d_decode[nwrite/8] |= ((cur&0x01) << (nwrite%8));
       				cur = minIdx;
-      				nwrite += 1024;
+      				nwrite += FEC_WRAP;
       			} // if
       	}// while
       	// last tracking
       	cur = 0;
-      	for(int i=1;i< (ncnt%1024) ;++i){
-      		nex0 = d_track[ncnt%1024-i][cur];
+      	for(int i=1;i< (ncnt%FEC_WRAP) ;++i){
+      		nex0 = d_track[ncnt%FEC_WRAP-i][cur];
       		d_decode[(ncnt-i)/8] |= ((cur&0x01) << ((ncnt-i)%8) );
       		cur = nex0;
       	}
       	// last one
       	d_decode[nwrite/8] |= ((cur & 0x01) << (nwrite%8));
-      	nwrite += (ncnt%1024);
+      	nwrite += (ncnt%FEC_WRAP);
       	return true;
     	}
     	
     	const pmt::pmt_t d_in_port;
     	const pmt::pmt_t d_out_port;
     	int d_rate;
+      int d_pun_mod;
     	unsigned char d_decode[4096];
-    	unsigned int d_cost[1024][64];
-    	unsigned char d_track[1024][64];
+    	unsigned int d_cost[FEC_WRAP][64];
+    	unsigned char d_track[FEC_WRAP][64];
       unsigned char d_rx_service[2];
+      const unsigned char *d_punPtr;
     	uint8_t d_seed_est;
     };
 
