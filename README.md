@@ -1,5 +1,11 @@
 # wifi-ofdm
-A Software-Defined Radio implementation of IEEE 802.11a phisical layer on Gnuradio
+A Software-Defined Radio implementation of IEEE 802.11a physical layer on Gnuradio
+
+**Note:** The project now supports Gnuradio 3.10 (Volk 3.1.2 is tested). 
+If you are using an earlier version (Gnuradio < 3.7), you can checkout to the `legacy` branch:
+```bash
+git checkout legacy
+```
 
 # Demo
 
@@ -10,8 +16,14 @@ A Software-Defined Radio implementation of IEEE 802.11a phisical layer on Gnurad
 - prerequisite:
 
     gr-gadget
+    Gnuradio 3.10
+    Volk (3.1.2 is tested)
 
-- install gr-wifi-dsss:
+- install Gnuradio 3.10
+    Please refer to the [GNU Radio Installation Guide](https://wiki.gnuradio.org/index.php/InstallingGR).
+    Radioconda is recommended as this is where the project is developed.
+
+- install gr-wifi-ofdm:
 ```
 cd gr-wifi-ofdm/
 mkdir build
@@ -26,8 +38,8 @@ sudo make install
 `cd examples` and run the scripts in the folder. 
 
 # Examples
-- 'wifi_ofdm_usrp_tx.grc': Transmitter script. Require one USRP connected to your computer.
-- 'wifi_ofdm_usrp_rx.grc': Receiver script. Also require one USRP connected.
+- 'wifi_ofdm_usrp_tx.grc': Transmitter script. Requires one USRP connected to your computer.
+- 'wifi_ofdm_usrp_rx.grc': Receiver script. Also requires one USRP connected.
 
 # Supported Rates
 The prototype supports the following data rates:
@@ -41,5 +53,5 @@ The prototype supports the following data rates:
 - 54 Mbps
 
 # Notes
-For convenience, the current version of the prototype use hard-decision decoding in the convolutional-codes decoder 
-and may therefore suffers from several dB bit-error-rate (BER) loss in low signal-to-noise ratio (SNR) regime.
+For convenience, the current version of the prototype uses hard-decision decoding in the convolutional-codes decoder 
+and may therefore suffer from several dB bit-error-rate (BER) loss in low signal-to-noise ratio (SNR) regime.
